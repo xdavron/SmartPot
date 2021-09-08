@@ -1,0 +1,7 @@
+cherrypy==18.5.0
+requests==2.25.1
+paho-mqtt==1.5.1
+cherrypy_cors==1.6
+schedule==1.1.0
+
+

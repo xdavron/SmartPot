@@ -1,0 +1,19 @@
+{
+	"resourceCatalog": {
+		"ip": "smart-pot-catalog.herokuapp.com",
+		"port": "80"
+	},
+
+	"manualMode": {
+		"ip": "smart-pot-manual-mode.herokuapp.com",
+		"port": "8084"
+	},
+	"automaticMode": {
+		"ip": "127.0.0.3",
+		"port": "8082"
+	},
+	"ModeManager": {
+		"ip": "smart-pot-mode-manager.herokuapp.com",
+		"port": "8083"
+	}
+}
