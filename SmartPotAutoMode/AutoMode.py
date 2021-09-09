@@ -6,42 +6,49 @@ import json
 import cherrypy_cors
 import paho.mqtt.client as PahoMQTT
 from datetime import datetime
-from MQTTPlantCare import MQTTClient
-from homeCatalogRequests import catalog
+from SmartPotAutoMode.MQTTPlantCare import MQTTClient
+from SmartPotAutoMode.homeCatalogRequests import catalog
 import threading
 import schedule
 import os
 import requests
 
 stop = 0
+
+# this dictionary contains all data retrieved from the device catalog (list of plantIDs, their MQTT topics)
 Hcatalog = {}
+
+# this dictionary contains the schedule for the automatic mode of smart pots
+# a pot with auto mode active MUST have an entry in this dict
 ScheduleDict = {}  # structure: {"plant1": schedule, "plant2: schedule}
 # schedule structure: {“water”: {“time1”:duration, “time2”:duration}, “light”: {“time1”:duration, “time2”:duration}}
-
-# this actor employs a thread which executes scheduled actions to send commands to the plants, scheduled actions are
-# updated at the start of each day, when the mode is activated for a new plantID, when a plantID schedule is changed
 
 
 class AutoModeMQTTClient(MQTTClient):
     global Hcatalog
-    # MAYBE ADD SOME CALLBACKS WHEN RECEIVING ACKS
+
+# class that implements the thread for the job scheduler, it uses the schedule package
+# there are two types of scheduled jobs:
+# -watering/lighting commands to smart pots according to current schedule
+# -request of a new daily schedule to mode manager (it is a job that is performed once a day)
+
+# scheduled actions are updated when:
+# -new schedules are requested to mode manager
+# -the mode is activated for a new plantID
+# -the schedule of a plantID schedule is changed
 
 
-# class that implements the thread for the job scheduler
 class JobSchedulerThread(threading.Thread):
 
     global Hcatalog
-    global ScheduleDict  # contains ALL jobs scheduled for the current day, format {"plantID1":jobs,"plantID2":jobs}
-    # jobs = {"water":{"t1":dur, "t2":dur}, "light":{"t1":dur, "t2"dur}}
-    toSet = False  # flag that means the daily schedule has to be set, initialized as false, must be set to true after initialization
-    # to start scheduling
-    threadStop = False
+    global ScheduleDict
+    toSet = False  # flag that means the daily schedule has to be set, must be set to true after system initialization
+    threadStop = False  # when true stops the thread loop
     DEBUG = True  # set true for debug messages
     MQTT = None
 
     def __init__(self):
         threading.Thread.__init__(self)
-        # instance an MQTT client class and start it
         # get current date
         today = datetime.today()
         self.currMonth = today.month
@@ -52,7 +59,7 @@ class JobSchedulerThread(threading.Thread):
         return ScheduleDict
 
     # send a GET to mode manager for a schedule for each activated plantID
-    # this method should be called at the start of each day
+    # this method should be called by scheduler at the start of each day
     def requestDailySchedule(self):
         global ScheduleDict
         global Hcatalog
@@ -61,28 +68,33 @@ class JobSchedulerThread(threading.Thread):
         suffix = "/all/auto/schedule/daily/?onlyActives=True"
         url = "http://"+ip+suffix
         response = requests.get(url)
+        # get a new schedule dictionary from mode manager
         ScheduleDict = json.loads(response.content.decode('utf-8'))
 
     def setDailySchedule(self):
+        print("requesting new Daily Schedule....")
         self.requestDailySchedule()  # updates ScheduleDict global variable
-        # set a daily schedule using the module schedules
+
         today = datetime.today()
         # update current date
         self.currDay = today.day
         self.currMonth = today.month
 
+        # set a new daily schedule
         for scheduledJobs in list(ScheduleDict.items()):
             plantID = scheduledJobs[0]
             sched = scheduledJobs[1]
-            self.schedulePlantJobs(plantID, sched)
+            self.schedulePlantJobs(plantID, sched)  # uses the schedule package to create a job
 
         # at the end of the day(00:00) it will clear all jobs and reschedule
         schedule.every().day.at('00:00:00').do(self.resetSchedule)
         self.toSet = False
+        print("new Daily Schedule stored succesfully....")
 
     def schedulePlantJobs(self, plantID, scheduledJobs):
         # schedules jobs in schedule tagging them with plantID
-        # schedule is a dictionary with format {“water”: {“time1”:duration, “time2”:duration}, “light”: {“time1”:duration, “time2”:duration}}
+        # schedule is a dictionary with format:
+        # {“water”: {“time1”:duration, “time2”:duration}, “light”: {“time1”:duration, “time2”:duration}}
         waterJobs = {}
         lightJobs = {}
         if "water" in scheduledJobs.keys():
@@ -104,6 +116,11 @@ class JobSchedulerThread(threading.Thread):
                     print(f"scheduling job at {time}, params:{paramDict}")
                 schedule.every().day.at(time).do(self.PlantCareJob, paramDict).tag(plantID)
 
+    # overwrite current schedule of a plantID with a new one
+    def update_plant_schedule(self, plantID, scheduledJobs):
+        self.removeScheduledJobs(plantID)
+        self.schedulePlantJobs(plantID, scheduledJobs)
+
     def removeScheduledJobs(self, plantID):
         # REMOVE ALL JOBS WITH TAG plantID
         if self.DEBUG:
@@ -115,6 +132,11 @@ class JobSchedulerThread(threading.Thread):
         schedule.clear()
         self.toSet = True
 
+    def removePlantID(self, plantID):
+        global ScheduleDict
+        if plantID in ScheduleDict.keys():
+            ScheduleDict.pop(plantID)
+
     def run(self):
         while not self.threadStop:
             if self.toSet:
@@ -123,7 +145,7 @@ class JobSchedulerThread(threading.Thread):
             time.sleep(1)
         print("Thread loop ended...")
 
-    # jobs performed by the scheduler
+    # MQTT commands sent by the scheduler
     def PlantCareJob(self, parameters):
         # check format
         if not("type" in parameters.keys() and "duration" in parameters.keys() and "deviceID" in parameters.keys()):
@@ -153,14 +175,12 @@ class JobSchedulerThread(threading.Thread):
 class AutomaticModeREST(object):
     exposed = True
     MQTTbroker = 'test.mosquitto.org'  # MQTT client instance is handled by the job thread
-#    MQTT = AutoModeMQTTClient('test', MQTTbroker, 'auto')
-    # schedulerThread = None
     active = False
     initialized = False
     deviceStatus = {}
     schedulerThread = JobSchedulerThread()
 
-    def subToPlantAcks(self, ID, unsub = False):
+    def subToPlantAcks(self, ID, unsub=False):
         global Hcatalog
         waterAck = Hcatalog.getPlantAckTopic(ID, "water")
         lightAck = Hcatalog.getPlantAckTopic(ID, "light")
@@ -176,18 +196,37 @@ class AutomaticModeREST(object):
         global ScheduleDict
 
         if len(uri) != 0:
+            # list of plantID has been modified, refresh it
+            if uri[0] == "update":
+                Hcatalog.requestAll()
+                keys = self.deviceStatus.copy()
+                for plantID in keys.keys():
+                    if plantID not in Hcatalog.getPlantIDs():
+                        if self.deviceStatus[plantID] == "on":
+                            # remove jobs if mode was active
+                            self.schedulerThread.removeScheduledJobs(plantID)
+                        # remove schedule
+                        self.schedulerThread.removePlantID(plantID)
+                        self.deviceStatus.pop(plantID)
+                for ID in Hcatalog.getPlantIDs():  # create a status entry for each new plant ID in home catalog
+                    if ID not in self.deviceStatus.keys():
+                        self.deviceStatus[ID] = "off"
+
             deviceID = uri[0]
             cmd = uri[1]
             if not self.initialized:
                 raise cherrypy.HTTPError(500, "device list not initialized")
             if deviceID != "all" and deviceID not in self.deviceStatus:
                 raise cherrypy.HTTPError(404, "specified device not found")
+
+            # returns "on" or "off" depending whether the plantID has auto mode currently active or not
+            # if deviceID is "all" then a dict with structure {plantID: mode} is returned (mode is "on" or "off")
             if cmd == "status":
                 if deviceID in self.deviceStatus:
                     return str(self.deviceStatus[deviceID])
                 elif deviceID == "all":
                     return json.dumps(self.deviceStatus)
-            elif cmd == "schedule":  # returns stored daily schedule
+            elif cmd == "schedule":  # returns currently used daily schedule
                 if deviceID in ScheduleDict:
                     return json.dumps(ScheduleDict[deviceID])
                 elif deviceID == "all":
@@ -216,17 +255,12 @@ class AutomaticModeREST(object):
                     # close REST API service
                     print('Stopping API service...')
                     cherrypy.engine.exit()
-                elif cmd == 'start':  # start the service, MUST BE ALWAYS CALLED AFTER SCRIPT STARTS
+                # start the service, MUST BE CALLED IN ORDER INITIALIZE THE SERVICES
+                elif cmd == 'start':
                     outputDict = {}
                     if not self.active:
-                        # self.MQTT.messageBroker = Hcatalog.broker["ip"]
-                        # self.MQTT.brokerPort = int(Hcatalog.broker["port"])
-                        # self.active = True
-                        # self.MQTT.start()  # NOTE: if the thread deals with MQTT ACKS this client is redundant
-                        # start scheduler thread
-                        # instantiate scheduler and start it
-                        # start MQTT client of the job scheduler
-                        self.schedulerThread.MQTT = AutoModeMQTTClient("AutomaticModeScheduledJobs", Hcatalog.broker["ip"], int(Hcatalog.broker["port"]))
+                        self.schedulerThread.MQTT = AutoModeMQTTClient("AutomaticModeScheduledJobs",
+                                                                       Hcatalog.broker["ip"], int(Hcatalog.broker["port"]))
                         print('starting scheduler MQTT client')
                         self.schedulerThread.MQTT.start()
                         print('scheduler MQTT client started')
@@ -251,6 +285,7 @@ class AutomaticModeREST(object):
                     return json.dumps(outputDict)
 
             elif deviceID in self.deviceStatus:  # schedule management and mode activation
+
                 if cmd == 'disable':
                     if self.deviceStatus[deviceID] == "on":
                         self.schedulerThread.removeScheduledJobs(deviceID)

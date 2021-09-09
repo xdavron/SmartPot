@@ -9,7 +9,8 @@ import requests
 class resourceCatalog(object):
     exposed = True
 
-    updateURL = 'https://smart-pot-mode-manager.herokuapp.com/all/update'
+    updateURL = 'https://smart-pot-mode-manager.herokuapp.com/update'
+    # to update list of plantIDs: GET with url "mode_ip/update"
 
     @cherrypy.tools.accept(media='application/json')
     def GET(self, *uri, **params):
@@ -90,7 +91,7 @@ class resourceCatalog(object):
                     # save new ID
                     with open("initialData.json", "w") as fp:
                         json.dump(self.jsonDic, fp)
-
+                    # TODO: add requests to manual/auto/feedback mode
                     updateMode = requests.get(self.updateURL)
                     print(updateMode.status_code, updateMode.content)
 

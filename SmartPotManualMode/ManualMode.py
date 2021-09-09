@@ -10,8 +10,8 @@ import paho.mqtt.client as PahoMQTT
 from datetime import datetime
 import requests
 
-from MQTTPlantCare import MQTTClient
-from homeCatalogRequests import catalog
+from SmartPotManualMode.MQTTPlantCare import MQTTClient
+from SmartPotManualMode.homeCatalogRequests import catalog
 
 DEBUG = True  # set to true for debug messages
 Hcatalog = None  # global variable to instantiate as the catalog class
@@ -117,6 +117,17 @@ class ManualModeREST(object):
 
         if len(uri) >= 1:
             deviceID = uri[0]
+
+            if deviceID == "update":
+                Hcatalog.requestAll()
+                keys = self.deviceStatus.copy()
+                for plantID in keys.keys():
+                    if plantID not in Hcatalog.getPlantIDs():
+                        self.deviceStatus.pop(plantID)
+                for ID in Hcatalog.getPlantIDs():  # create a status entry for each new plant ID in home catalog
+                    if ID not in self.deviceStatus.keys():
+                        self.deviceStatus[ID] = "off"
+
             cmd = uri[1]
             if cmd == "status":  # status of manual mode for each plant ('on' or 'off)
                 if deviceID == "all":
@@ -225,7 +236,7 @@ class ManualModeREST(object):
         modeActive = False
         suffix = '/all/status'
         ip = Hcatalog.urls["ModeManager"]["ip"]
-        print(ip)
+        # print(ip)
         # port = Hcatalog.urls["ModeManager"]["port"]
         # url = 'http://' + ip + ':' + port + suffix
         url = 'http://' + ip + suffix

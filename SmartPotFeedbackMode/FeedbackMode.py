@@ -20,15 +20,15 @@ import json
 import os
 import paho.mqtt.client as PahoMQTT
 from datetime import datetime
-import MQTTPlantCare
+import SmartPotFeedbackMode.MQTTPlantCare
 import threading
 import schedule
-from MQTTPlantCare import MQTTClient
-from homeCatalogRequests import catalog
+from SmartPotFeedbackMode.MQTTPlantCare import MQTTClient
+from SmartPotFeedbackMode.homeCatalogRequests import catalog
 import requests
 
 # GLOBAL VARIABLES
-deviceParameters = {}  # global variable containing the feedback mode status for each plant ID
+deviceParameters = {}  # global variable containing the feedback mode parameters for each plant ID
 # format: plantID : {"light_time": k, "hum_thresh": n, "illum_thresh": m, "last_hum_update": t};
 
 # k integer time in seconds, n,m val between 0-100, t are datetime objects (timestamp of last rx update)
@@ -45,6 +45,7 @@ class FeedbackModeMQTTClient(MQTTClient):
     lightSensorInterval = 30
     default_illum_thresh = 70  # default illumination threhsold
 
+    # subscribe to the topics of soil and light sensors of deviceID
     def subToSensorData(self, deviceID):
         global Hcatalog
         try:
@@ -55,21 +56,23 @@ class FeedbackModeMQTTClient(MQTTClient):
         except:
             print(f"Warning: could not find topics for device: {deviceID}")
 
+    # overwrites callback in original function
+    # each time soil sensor reading is received, check if the value is within the threshold
+    # if it isn't send command to water
+
+    # each time lighting sensor reading is received, check if value is over illumination threshold, if it is then the
+    # plant is considered illuminated so increase the light counter
     def myOnMessageReceived(self, paho_mqtt, userdata, msg):
         global nightTime_m
         global nightTime_h
         topic = msg.topic
         deviceID, sensor_type = self.getIDfromTopic(topic)
-
+        if deviceID not in deviceStatus:
+            return
         if sensor_type == "soilTopic":
             if deviceStatus[deviceID] is "on":  # humidity check only if fb mode is active
                 sensor_data = json.loads(msg.payload)
                 if self.humidityCheck(deviceID, sensor_data):  # check if action is necessary
-                    # {
-                    #    "mode": 1, // 1 to turn on, 0 to turn off
-                    #    "time": "2020-08-10 15:17:28"
-                    #   “duration”: 10 [ms] // amount of time the motor will be on (set to -1 if unused)
-                    #  }
                     cmd_topic = Hcatalog.getPlantCmdTopic(deviceID, "water")
                     cmd_payload = {"mode": 1, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": 1000}
                     self.publishCommand(cmd_topic, json.dumps(cmd_payload))  # water the plant
@@ -154,6 +157,13 @@ class FeedbackModeMQTTClient(MQTTClient):
         cmd_payload = {"mode": 0, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": -1}
         self.publishCommand(cmd_topic, json.dumps(cmd_payload))
 
+    def removePlantIDParams(self, devID):
+        global deviceParameters
+        global deviceLightCounter
+        if devID in deviceParameters:
+            deviceParameters.pop(devID)
+        if devID in deviceLightCounter:
+            deviceLightCounter.pop(devID)
 
 class LightSupplement(threading.Thread):
     # THIS THREAD IMPLEMENTS A SCHEDULE THAT RESET LIGHTCOUNTERS AT THE NIGHT HOUR
@@ -268,19 +278,44 @@ class FeedbackModeREST(object):
 
     @cherrypy.tools.accept(media='application/json')
     def GET(self, *uri):
+        global deviceParameters
+        global deviceLightCounter
+        global deviceStatus
+
         # placeholder for possible status variable
         if len(uri) > 1:
             if not self.initialized:
                 raise cherrypy.HTTPError(500, "device list not initialized")
+            if uri[0] == "update":
+                Hcatalog.requestAll()
+                keys = deviceStatus.copy()
+                for plantID in keys.keys():
+                    if plantID not in Hcatalog.getPlantIDs():
+                        if deviceStatus[plantID] == "on":
+                            self.MQTT.turnOffLight(deviceID)
+                            self.subToPlantAcks(plantID, unsub=True)  # unsubscribe from topics
+                            # remove schedule
+                        self.MQTT.removePlantIDParams(plantID)
+                        deviceStatus.pop(plantID)
+                for ID in Hcatalog.getPlantIDs():  # create a status entry for each new plant ID in home catalog
+                    if ID not in self.deviceStatus.keys():
+                        self.deviceStatus[ID] = "off"
             deviceID = uri[0]
             cmd = uri[1]
-            if deviceID != "all" and deviceID not in self.deviceStatus:
+            if deviceID != "all" and deviceID not in deviceStatus:
                 raise cherrypy.HTTPError(404, "specified device not found")
+            # returns "on" or "off" depending whether the plantID has auto mode currently active or not
+            # if deviceID is "all" then a dict with structure {plantID: mode} is returned (mode is "on" or "off")
             if cmd == "status":
-                if deviceID in self.deviceStatus:
-                    return str(self.deviceStatus[deviceID])
+                if deviceID in deviceStatus:
+                    return str(deviceStatus[deviceID])
                 elif deviceID == "all":
-                    return json.dumps(self.deviceStatus)
+                    return json.dumps(deviceStatus)
+            if cmd == "thresh":
+                if deviceID in deviceParameters:
+                    return deviceParameters[deviceID]
+                else:
+                    cherrypy.HTTPError(404, "thresholds params for this ID not found")
             else:
                 cherrypy.HTTPError(404, "invalid url")
 
@@ -351,6 +386,8 @@ class FeedbackModeREST(object):
                         deviceParams["last_hum_update"] = datetime.now().replace(hour=0, minute=0)
                     else:
                         raise cherrypy.HTTPError(500, "msg body format is incorrect")
+                    if deviceID not in deviceLightCounter:
+                        deviceLightCounter[deviceID] = 0
                     # {"light_time": k, "hum_thresh": n, "illum_thresh": m, "last_hum_update": t};1
                     if deviceParams["light_time"] != -1:  # light control is enabled
                         if datetime.now() > datetime.now().replace(hour=nightTime_h, minute=nightTime_m):

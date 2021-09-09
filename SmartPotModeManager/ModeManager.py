@@ -1,4 +1,4 @@
-from homeCatalogRequests import catalog
+from SmartPotModeManager.homeCatalogRequests import catalog
 # from MQTTPlantCare import MQTTClient
 import json
 from datetime import datetime
@@ -7,16 +7,18 @@ import requests
 import os
 import time
 
-feedbackModeDataFileName = "storedTresholds.json"
-scheduleFileName = "storedSchedules.json"  # file acting as DB for auto mode schedules
-Hcatalog = {}
-scheduleDB = None
 
+feedbackModeDataFileName = "storedTresholds.json"  # file acting as storage for feedback mode thresholds
+scheduleFileName = "storedSchedules.json"  # file acting as storage for auto mode schedules
+Hcatalog = {}  # this dictionary contains all data retrieved from the device catalog (list of plantIDs, their MQTT topics)
+scheduleDB = None  # global object managing schedule storage
 
 # this actor stores general statuses of the three modes (microservice status)
-# it also stores modes enablad for each plant in the system
-# acts as DB to store the full schedules of each plantID, sends the daily schedules to Auto Mode
-# manages requests from UI to activate modes
+# it also stores the list of modes enabled for each plant in the system
+# acts as DB to store the full schedules of each plantID, when requested it will send the daily schedules to Auto Mode
+# manages requests from UI to manage the smart pots (activating/disabling modes, changing mode parameters)
+
+
 def isTimeFormat(input):
     try:
         time.strptime(input, '%H:%M')
@@ -26,23 +28,25 @@ def isTimeFormat(input):
 
 
 class scheduleStorage:
-    # "weekday" is the weekday of the date the schedule has been loaded
+    # "weekday" is the weekday of the date the schedule was loaded (to make sure current daily schedule is not updated)
+    # it contains the water/lighting jobs of the day for each plant
+
     # "schedule" will contain a dict with entries of format "plantID":dailySchedule
     dailySchedule = {"weekday": "", "schedule": {}}
     # fullSchedule is a dict with entries "plantID":fullScheduleData, where fullSchedule data is a dict of format:
     # {"type":schedType, "schedData":scheduleData}
     fullSchedule = {}
+    DEBUG = False
 
-    def __init__(self, fileName):  # load full schedule and daily schedule
+    def __init__(self, fileName):  # load full schedule and daily schedule from file
         self.storageFileName = fileName
         with open(fileName, "r") as fp:
             schedDict = json.load(fp)
         self.fullSchedule = schedDict
-        self.loadDailySchedules()  # insert daily schedule in self.dailySchedule["schedule"]
+        self.loadDailySchedules()  # overwrites current daily schedule in self.dailySchedule["schedule"]
         fp.close()
 
     def getWeeklyJobs(self, deviceID):
-        # if the current daily schedule refers to the day before then update it loading the schedule for the current day
         if deviceID == "all":
             return self.fullSchedule
         elif deviceID in self.fullSchedule:
@@ -51,7 +55,8 @@ class scheduleStorage:
             return None
 
     def getDailyJobs(self, deviceID):
-        # if the current daily schedule refers to the day before then update it loading the schedule for the current day
+        # return the dictionary containing auto mode jobs for the day
+        # if the current daily schedule refers to the day before, then load a new schedule returning daily jobs
         if datetime.today().weekday() != self.dailySchedule["weekday"]:
             self.loadDailySchedules()
         if deviceID == "all":
@@ -62,24 +67,30 @@ class scheduleStorage:
             return None
 
     def addSchedule(self, devID, scheduleJSON):
+        # add a schedule entry for specified devID
         # if there is already a schedule entry for this devID it will be overwritten
         try:
             jsonDict = json.loads(scheduleJSON)
         except:
             return False
         scheduleData = jsonDict[devID]
-        print(scheduleData)
         if "type" in scheduleData and "schedData" in scheduleData:
             self.fullSchedule[devID] = scheduleData
-            print(self.fullSchedule)
+            if self.DEBUG:
+                print(f"adding following schedule for device {devID}")
+                print(self.fullSchedule)
             if scheduleData["type"] == "daily":
                 self.dailySchedule["schedule"][devID] = scheduleData["schedData"]
-                print(self.dailySchedule)
+                if self.DEBUG:
+                    print(f"daily schedule for device {devID}")
+                    print(self.dailySchedule)
                 return True
             elif scheduleData["type"] == "weekly":
                 weekday = datetime.today().weekday()  # get number corresponding to weekday (0-mon, 6-sun)
                 self.dailySchedule["schedule"][devID] = scheduleData["schedData"][weekday]
-                print(self.dailySchedule)
+                if self.DEBUG:
+                    print(f"daily schedule for device {devID}")
+                    print(self.dailySchedule)
                 return True
             else:
                 raise cherrypy.HTTPError(500, f"unsupported schedule type: {scheduleData['type']}")
@@ -91,7 +102,7 @@ class scheduleStorage:
             json.dump(self.fullSchedule, fp)
 
     def updateFullSchedule(self, devID, scheduleJSON, weekday_n):
-        # changes a single day in daily schedule of devIDD, only possible for weekly schedules
+        # changes a single day in daily schedule of devID, only possible for weekly schedules
         try:
             jsonDict = json.loads(scheduleJSON)
         except:
@@ -106,26 +117,30 @@ class scheduleStorage:
         else:
             return False
 
-    def loadDailySchedules(self):  # load daily schedule
+    def loadDailySchedules(self):
+        # for each plantID get the jobs to be performed for the day
         self.dailySchedule["weekday"] = datetime.today().weekday()  # weekday of the loaded daily schedule
         for sched in list(self.fullSchedule.items()):
             plantID = sched[0]
             schedData = sched[1]
+            # if the schedule type is "daily" then just get the schedule data
             if schedData["type"] == "daily":
                 dailyJobs = schedData["schedData"]
+            # if the schedule type is "weekly" get the schedule data of the current weekday
             elif schedData["type"] == "weekly":
                 weekday = datetime.today().weekday()  # get number corresponding to weekday (0-mon, 6-sun)
                 dailyJobs = schedData["schedData"][weekday]
-            elif schedData["type"] == "monthly":
-                # NOT IMPLEMENTED
-                raise ValueError("Monthly schedule type not yet implemented")
-            elif schedData["type"] == "yearly":
-                # NOT IMPLEMENTED
-                raise ValueError("Yearly schedule type not yet implemented")
             else:
                 raise ValueError("Unrecognized schedule type")
-            self.dailySchedule["schedule"][
-                plantID] = dailyJobs  # format "plantID" : {"water":{"time":"duration"}, "light":{"time":"duration"}
+            # format of dailyJobs : {"water":{"time":"duration"}, "light":{"time":"duration"}
+            self.dailySchedule["schedule"][plantID] = dailyJobs
+
+    def removePlantID(self, devID):
+        # remove plantID from the schedule dictionaries
+        if devID in self.dailySchedule["schedule"].keys():
+            self.dailySchedule["schedule"].pop(devID)
+        if devID in self.fullSchedule["schedule"].keys():
+            self.fullSchedule["schedule"].pop(devID)
 
     # returns True if format is correct, False otherwise
     def checkScheduleFormat(self, schedule):
@@ -134,7 +149,6 @@ class scheduleStorage:
 
 class ModeManagerREST(object):
     exposed = True
-
     default_illum_thresh = 70  # threshold of the illum sensor value after which it the plant is considered illuminated
     schedulerThread = None
     active = False
@@ -154,6 +168,18 @@ class ModeManagerREST(object):
         global scheduleDB
         if len(uri) != 0:
             devID = uri[0]
+
+            if devID == 'update':  # update plantIDs
+                Hcatalog.requestAll()
+                keys = self.deviceMode.copy()
+                for plantID in keys.keys():
+                    if plantID not in Hcatalog.getPlantIDs():
+                        self.deviceMode.pop(plantID)
+                        scheduleDB.removePlantID(plantID)
+                for ID in Hcatalog.getPlantIDs():  # create a status entry for each new plant ID in home catalog
+                    if ID not in self.deviceMode.keys():
+                        self.deviceMode[ID] = []
+
             mode = uri[1]
             # requests concerning automatic mode
             if not (devID == "all" or devID in self.deviceMode):
@@ -179,17 +205,6 @@ class ModeManagerREST(object):
                     return json.dumps(self.deviceMode)
                 else:
                     return json.dumps(self.deviceMode[devID])
-            if mode == 'update':
-                Hcatalog.requestAll()
-                print(Hcatalog.getPlantIDs())
-                keys = self.deviceMode.copy()
-                for item in keys.keys():
-                    if item not in Hcatalog.getPlantIDs():
-                        self.deviceMode.pop(item)
-                for ID in Hcatalog.getPlantIDs():  # create a status entry for each plant ID in home catalog
-                    if ID not in self.deviceMode.keys():
-                        self.deviceMode[ID] = []
-
             if mode == "auto":
                 cmd = uri[2]
                 if cmd == "schedule":
