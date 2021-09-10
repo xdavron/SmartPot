@@ -600,6 +600,9 @@ class ModeManagerREST(object):
         if newMode == "feedback":
             if "manual" in self.deviceMode[plantID] or "auto" in self.deviceMode[plantID]:
                 return True
+        if newMode == "auto" or newMode == "manual":
+            if "feedback" in self.deviceMode[plantID]:
+                return True
         else:
             return False
 
