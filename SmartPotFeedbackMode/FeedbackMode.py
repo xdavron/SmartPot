@@ -35,7 +35,7 @@ deviceParameters = {}  # global variable containing the feedback mode parameters
 deviceLightCounter = {}  # global variable counting minutes of illumination for each deviceID
 deviceStatus = {}  # dictionary containing the feedback mode status for each plant ID
 # nighttime, time after which the led can be turned on to supplement lighting time
-# TO-DO: allow user to set the night time or retrieve it from internet
+# TODO: allow user to set the night time or retrieve it from internet
 nightTime_h = 18
 nightTime_m = 0
 
@@ -55,7 +55,6 @@ class FeedbackModeMQTTClient(MQTTClient):
             self.mySubscribe(light_topic)
         except:
             print(f"Warning: could not find topics for device: {deviceID}")
-
     # overwrites callback in original function
     # each time soil sensor reading is received, check if the value is within the threshold
     # if it isn't send command to water
@@ -127,7 +126,7 @@ class FeedbackModeMQTTClient(MQTTClient):
             # we check all received data, and assume a constant sensor tx interval so that each sensor reading add
             # a fixed amount of light time
             if devID in deviceParameters:
-                if sensorData["value"] < deviceParameters[devID]["hum_thresh"]:  # compare sensor data with devID threshold
+                if sensorData["value"] < deviceParameters[devID]["illum_thresh"]:  # compare sensor data with devID threshold
                     return True
             else:
                 if sensorData["value"] < self.default_illum_thresh:  # compare sensor data with default threshold
@@ -164,6 +163,7 @@ class FeedbackModeMQTTClient(MQTTClient):
             deviceParameters.pop(devID)
         if devID in deviceLightCounter:
             deviceLightCounter.pop(devID)
+
 
 class LightSupplement(threading.Thread):
     # THIS THREAD IMPLEMENTS A SCHEDULE THAT RESET LIGHTCOUNTERS AT THE NIGHT HOUR
