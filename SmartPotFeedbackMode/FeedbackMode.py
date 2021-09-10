@@ -48,15 +48,17 @@ class FeedbackModeMQTTClient(MQTTClient):
     default_illum_thresh = default_illum_thresh_g  # default illumination threhsold
 
     # subscribe to the topics of soil and light sensors of deviceID
-    def subToSensorData(self, deviceID):
+    def subToSensorData(self, deviceID, unsub = False):
         global Hcatalog
-        try:
-            soil_topic = Hcatalog.topics[deviceID]["topic"]["soilTopic"]
-            light_topic = Hcatalog.topics[deviceID]["topic"]["lightTopic"]
-            self.mySubscribe(soil_topic)
-            self.mySubscribe(light_topic)
-        except:
-            print(f"Warning: could not find topics for device: {deviceID}")
+        if not unsub:
+            try:
+                soil_topic = Hcatalog.topics[deviceID]["topic"]["soilTopic"]
+                light_topic = Hcatalog.topics[deviceID]["topic"]["lightTopic"]
+                self.mySubscribe(soil_topic)
+                self.mySubscribe(light_topic)
+            except:
+                print(f"Warning: could not find topics for device: {deviceID}")
+
     # overwrites callback in original function
     # each time soil sensor reading is received, check if the value is within the threshold
     # if it isn't send command to water
@@ -318,15 +320,13 @@ class FeedbackModeREST(object):
                 keys = deviceStatus.copy()
                 for plantID in keys.keys():
                     if plantID not in Hcatalog.getPlantIDs():
-                        if deviceStatus[plantID] == "on":
-                            self.MQTT.turnOffLight(plantID)
-                            self.subToPlantAcks(plantID, unsub=True)  # unsubscribe from topics
-                            # remove schedule
-                        self.MQTT.removePlantIDParams(plantID)
+                        self.MQTT.removePlantIDParams(plantID) # remove ID for devieParams and light counter
                         deviceStatus.pop(plantID)
                 for ID in Hcatalog.getPlantIDs():  # create a status entry for each new plant ID in home catalog
                     if ID not in self.deviceStatus.keys():
-                        self.deviceStatus[ID] = "off"
+                        deviceStatus[ID] = "off"
+                        deviceLightCounter[ID] = 0  # create a LightCounter for the new ID
+                        self.MQTT.subToSensorData(ID)  # subscribe to light and humidity sensor
             deviceID = uri[0]
             cmd = uri[1]
             if deviceID != "all" and deviceID not in deviceStatus:
@@ -387,7 +387,7 @@ class FeedbackModeREST(object):
                         print("Initializing sensor listener...")
                         for ID in Hcatalog.getPlantIDs():  # create a status entry for each plant ID in home catalog
                             deviceStatus[ID] = "off"  # initialize all as inactive
-                            deviceLightCounter[ID] = 0  # set all counters to 0 (TO-DO: store light counters in modeManager)
+                            deviceLightCounter[ID] = 0  # set all counters to 0
                             print("Subscribing to sensor data of device: ", ID)
                             self.MQTT.subToSensorData(ID)  # sub to device data and start monitoring illumination
                         self.requestActiveIDs()
