@@ -374,11 +374,23 @@ class FeedbackModeREST(object):
         global deviceID
         global deviceStatus
         global deviceLightCounter
+        global nightTime_m
+        global nightTime_h
         if len(uri) > 0:
             deviceID = uri[0]  # ID of the device to which the PlantCare commands will be sent
             print("devID: ", deviceID)
             cmd = str(uri[1])
             if deviceID == "system":
+                if cmd == "changeNightTime":
+                    jsonPayload = cherrypy.request.body.read().decode('utf8')
+                    new_nightTime = json.loads(jsonPayload)
+                    try:
+                        h_str, m_str = new_nightTime.split(":")
+                    except:
+                        raise cherrypy.HTTPError(500, "invalid payload format")
+                    nightTime_h = int(h_str)
+                    nightTime_m = int(m_str)
+
                 if cmd == 'stop':
                     # turns off feedback mode and the REST API service
                     # stop thread if it was active
