@@ -77,7 +77,7 @@ class FeedbackModeMQTTClient(MQTTClient):
                 sensor_data = json.loads(msg.payload)
                 if self.humidityCheck(deviceID, sensor_data):  # check if action is necessary
                     cmd_topic = Hcatalog.getPlantCmdTopic(deviceID, "water")
-                    cmd_payload = {"mode": 1, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": 1000}
+                    cmd_payload = {"mode": 1, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": 1}
                     self.publishCommand(cmd_topic, json.dumps(cmd_payload))  # water the plant
                     if self.DEBUG:
                         print(f"published MQTT cmd: topic: {cmd_topic}, payload: {cmd_payload}")
@@ -92,7 +92,7 @@ class FeedbackModeMQTTClient(MQTTClient):
     def getIDfromTopic(self, input_topic):
         global Hcatalog
         for deviceID, devID_data in Hcatalog.topics.items():
-            for topic_n, topic_v in devID_data["topic"]:
+            for topic_n, topic_v in devID_data["topic"].items():
                 if topic_v == input_topic:
                     return deviceID, topic_n
 
@@ -116,11 +116,11 @@ class FeedbackModeMQTTClient(MQTTClient):
                         if sensorData["value"] < deviceParameters[devID]["hum_thresh"]:  # compare sensor data with threshold
                             if self.DEBUG:
                                 print(f"DEVICE: {devID}, soil sensor reading: {sensorData['value']}, "
-                                      f"below threshold: {deviceParameters['hum_thresh']}")
+                                      f"below threshold: {deviceParameters[devID]['hum_thresh']}")
                             return True
                     if self.DEBUG:
                         print(f"DEVICE: {devID}, soil sensor reading: {sensorData['value']}, "
-                              f"above threshold: {deviceParameters['hum_thresh']}")
+                              f"above threshold: {deviceParameters[devID]['hum_thresh']}")
                     return False
             except:
                 print(f"WARNING: Could not parse sensor data of device {devID}, received payload str: ", sensorData)
@@ -317,7 +317,7 @@ class FeedbackModeREST(object):
             modeList = el[1]
             if "feedback" in modeList:
                 deviceStatus[id] = "on"
-                deviceParameters = {"light_time": default_light_time_g, "hum_thresh": default_hum_thresh_g,
+                deviceParameters[id] = {"light_time": default_light_time_g, "hum_thresh": default_hum_thresh_g,
                                     "illum_thresh": default_illum_thresh_g}
                 modeActive = True
         # request device modes from ModeManager and update self.deviceStatus

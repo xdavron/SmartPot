@@ -475,13 +475,13 @@ class ModeManagerREST(object):
                                 if "hum_thresh" in msg_body_dict:
                                     # check data correctness
                                     # TO-DO: implement partial feedback mode at FB mode side
-                                    if 0 <= float(msg_body_dict["hum_thresh"]) <= 100:
+                                    if 0 <= float(msg_body_dict["hum_thresh"]) <= 1023:
                                         feedback_mode_msg["hum_thresh"] = msg_body_dict["hum_thresh"]
                                     else:
                                         raise cherrypy.HTTPError(500,
                                                                  "humidity threshold must be a value between 0 and 100")
                                 if "light_time" in msg_body_dict:
-                                    if 0 <= int(msg_body_dict["light_time"]) <= 1440:
+                                    if 0 <= int(msg_body_dict["light_time"]) <= 21600:
                                         feedback_mode_msg["light_time"] = msg_body_dict["light_time"]
                                     if "illum_thresh" in msg_body_dict:
                                         if 0 <= int(msg_body_dict["illum_thresh"]) <= 1023:
@@ -555,7 +555,7 @@ class ModeManagerREST(object):
                         if "hum_thresh" in msg_body_dict:
                             # check data correctness
                             # TO-DO: implement partial feedback mode at FB mode side
-                            if 0 <= float(msg_body_dict["hum_thresh"]) <= 100:
+                            if 0 <= float(msg_body_dict["hum_thresh"]) <= 1023:
                                 feedback_mode_msg["hum_thresh"] = msg_body_dict["hum_thresh"]
                             else:
                                 raise cherrypy.HTTPError(500,
