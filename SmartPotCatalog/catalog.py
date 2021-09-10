@@ -27,7 +27,7 @@ class resourceCatalog(object):
             self.jsonString = file.read()
             file.close()
         except:
-            raise KeyError("* resourceCatalog: ERROR IN READING INITIAL DATA *")
+            raise cherrypy.HTTPError(500, "* resourceCatalog: ERROR IN READING INITIAL DATA *")
         self.jsonDic = json.loads(self.jsonString)
         # print(self.jsonDic)
 
@@ -52,7 +52,7 @@ class resourceCatalog(object):
             self.jsonString = file.read()
             file.close()
         except:
-            raise KeyError("* resourceCatalog: ERROR IN READING INITIAL DATA *")
+            raise cherrypy.HTTPError(500, "* resourceCatalog: ERROR IN READING INITIAL DATA *")
         self.jsonDic = json.loads(self.jsonString)
         # print(self.jsonDic['topics'])
 
