@@ -1,4 +1,3 @@
-import sys
 
 # FEEDBACK MODE DESCRIPTION
 # WATERING
