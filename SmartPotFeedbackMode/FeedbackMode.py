@@ -292,7 +292,7 @@ class FeedbackModeREST(object):
                 for plantID in keys.keys():
                     if plantID not in Hcatalog.getPlantIDs():
                         if deviceStatus[plantID] == "on":
-                            self.MQTT.turnOffLight(deviceID)
+                            self.MQTT.turnOffLight(plantID)
                             self.subToPlantAcks(plantID, unsub=True)  # unsubscribe from topics
                             # remove schedule
                         self.MQTT.removePlantIDParams(plantID)
