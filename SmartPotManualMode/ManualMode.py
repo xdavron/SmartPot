@@ -87,9 +87,9 @@ class ManualModeREST(object):
         if "action" in inputDict.keys() and "duration" in inputDict.keys():
             # TO-DO: add a check if system is waiting for an ACK from ID for this action
             if inputDict["action"] == "on":
-                mode = "on"
+                mode = 1
             elif inputDict["action"] == "off":
-                mode = "off"
+                mode = 0
             else:
                 return False
             d = inputDict["duration"]

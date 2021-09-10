@@ -156,7 +156,7 @@ class JobSchedulerThread(threading.Thread):
         jobType = parameters['type']
         duration = parameters['duration']
         timeStr = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cmdDict = {"action": "on", "time": timeStr, "duration": duration}
+        cmdDict = {"mode": 1, "time": timeStr, "duration": duration}
         cmdJSON = json.dumps(cmdDict)
         # get topic
         topic = Hcatalog.getPlantCmdTopic(deviceID, jobType)

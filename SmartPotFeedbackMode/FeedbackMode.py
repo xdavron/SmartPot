@@ -146,14 +146,14 @@ class FeedbackModeMQTTClient(MQTTClient):
         # duration is an int specifying illumination duration in seconds
         cmd_topic = Hcatalog.getPlantCmdTopic(devID, "light")
         duration_ms = duration*1000
-        cmd_payload = {"mode": "on", "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": duration_ms}
+        cmd_payload = {"mode": 1, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": duration_ms}
         self.publishCommand(cmd_topic, json.dumps(cmd_payload))
 
     def turnOffLight(self, devID):
         global Hcatalog
         # duration is an int specifying illumination duration in seconds
         cmd_topic = Hcatalog.getPlantCmdTopic(devID, "light")
-        cmd_payload = {"mode": "off", "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": -1}
+        cmd_payload = {"mode": 0, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": -1}
         self.publishCommand(cmd_topic, json.dumps(cmd_payload))
 
     def removePlantIDParams(self, devID):
