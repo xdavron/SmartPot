@@ -43,7 +43,7 @@ default_light_time_g = 8*6000
 class FeedbackModeMQTTClient(MQTTClient):
     global Hcatalog
     global default_illum_thresh_g
-
+    DEBUG = True
     lightSensorInterval = 30
     default_illum_thresh = default_illum_thresh_g  # default illumination threhsold
 
@@ -79,6 +79,8 @@ class FeedbackModeMQTTClient(MQTTClient):
                     cmd_topic = Hcatalog.getPlantCmdTopic(deviceID, "water")
                     cmd_payload = {"mode": 1, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "duration": 1000}
                     self.publishCommand(cmd_topic, json.dumps(cmd_payload))  # water the plant
+                    if self.DEBUG:
+                        print(f"published MQTT cmd: topic: {cmd_topic}, payload: {cmd_payload}")
         elif sensor_type == "lightTopic" and datetime.now() < datetime.now().replace(hour=nightTime_h, minute=nightTime_m):
             # if current time is after set night time it ignores light data
             # light counter updated also if fb mode is inactive
@@ -112,7 +114,13 @@ class FeedbackModeMQTTClient(MQTTClient):
                         # update timestamp
                         deviceParameters[devID]["last_hum_update"] = new_t
                         if sensorData["value"] < deviceParameters[devID]["hum_thresh"]:  # compare sensor data with threshold
+                            if self.DEBUG:
+                                print(f"DEVICE: {devID}, soil sensor reading: {sensorData['value']}, "
+                                      f"below threshold: {deviceParameters['hum_thresh']}")
                             return True
+                    if self.DEBUG:
+                        print(f"DEVICE: {devID}, soil sensor reading: {sensorData['value']}, "
+                              f"above threshold: {deviceParameters['hum_thresh']}")
                     return False
             except:
                 print(f"WARNING: Could not parse sensor data of device {devID}, received payload str: ", sensorData)
@@ -131,10 +139,19 @@ class FeedbackModeMQTTClient(MQTTClient):
             # a fixed amount of light time
             if devID in deviceParameters:
                 if sensorData["value"] < deviceParameters[devID]["illum_thresh"]:  # compare sensor data with devID threshold
+                    if self.DEBUG:
+                        print(f"DEVICE: {devID}, light sensor reading: {sensorData['value']}, "
+                              f"below threshold: {deviceParameters['illum_thresh']}")
                     return True
+                if self.DEBUG:
+                    print(f"DEVICE: {devID}, light sensor reading: {sensorData['value']}, "
+                          f"above threshold: {deviceParameters['illum_thresh']}")
             else:
                 if sensorData["value"] < self.default_illum_thresh:  # compare sensor data with default threshold
                     return True
+                if self.DEBUG:
+                    print(f"DEVICE: {devID}, light sensor reading: {sensorData['value']}, "
+                          f"above default threshold: {self.default_illum_thresh}")
             return False
         except:
             print(f"WARNING: Could not parse sensor data of device {devID}, received payload str: ", sensorData)
@@ -144,6 +161,8 @@ class FeedbackModeMQTTClient(MQTTClient):
         global deviceParameters
         global deviceLightCounter
         deviceLightCounter[devID] += self.lightSensorInterval  # this is doable if sensor transmit at intervals
+        if self.DEBUG:
+            print(f"light counter of {deviceID} increased of {self.lightSensorInterval}")
 
     def giveLightCmd(self, devID, duration):
         global Hcatalog
