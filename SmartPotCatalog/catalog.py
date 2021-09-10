@@ -9,8 +9,15 @@ import requests
 class resourceCatalog(object):
     exposed = True
 
-    updateURL = 'https://smart-pot-mode-manager.herokuapp.com/update'
-    # to update list of plantIDs: GET with url "mode_ip/update"
+    def send_update_request(self):
+        updateURL_list = [self.jsonDic.urls["manualMode"]["ip"] + "/update",
+                          self.jsonDic.urls["automaticMode"]["ip"] + "/update",
+                          self.jsonDic.urls["ModeManager"]["ip"] + "/update",
+                          self.jsonDic.urls["feedbackMode"]["ip"] + "/update"]
+        for url in updateURL_list:
+            retval = requests.get(url)
+            print(retval.status_code, retval.content)
+
 
     @cherrypy.tools.accept(media='application/json')
     def GET(self, *uri, **params):
@@ -91,9 +98,8 @@ class resourceCatalog(object):
                     # save new ID
                     with open("initialData.json", "w") as fp:
                         json.dump(self.jsonDic, fp)
-                    # TODO: add requests to manual/auto/feedback mode
-                    updateMode = requests.get(self.updateURL)
-                    print(updateMode.status_code, updateMode.content)
+                    # send update request to modemanager/auto/feedback/manual modes
+                    self.send_update_request()
 
             elif cmd == 'remove':
                 # read message body extract ID
@@ -113,8 +119,7 @@ class resourceCatalog(object):
                     del self.jsonDic['topics'][inputID]
                     with open("initialData.json", "w") as fp:
                         json.dump(self.jsonDic, fp)
-                    updateMode = requests.get(self.updateURL)
-                    print(updateMode.status_code,updateMode.content)
+                    self.send_update_request()
                 else:
                     raise cherrypy.HTTPError(500, "This " + inputID + " plantId does not exists in catalog")
 
