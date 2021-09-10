@@ -608,7 +608,7 @@ class ModeManagerREST(object):
         # port = Hcatalog.urls["manualMode"]["port"]
         # url = "http://" + ip + ':' + str(port) + '/' + devID + '/' + req
         url = "http://" + ip + '/' + devID + '/' + req
-        retval = requests.put(url)
+        retval = requests.post(url)
         return retval.status_code
 
     def autoModeRequest(self, devID, req, dailySched=None):
@@ -620,10 +620,10 @@ class ModeManagerREST(object):
             if dailySched is None:
                 raise ValueError("daily schedule for auto mode enable request is empty")
             dailySchedJSON = json.dumps(dailySched)
-            ret_val = requests.put(url, data=dailySchedJSON)
+            ret_val = requests.post(url, data=dailySchedJSON)
             return ret_val.status_code
         elif req == "disable":
-            ret_val = requests.put(url)
+            ret_val = requests.post(url)
             return ret_val.status_code
 
     def feedbackModeRequest(self, devID, req, paramData=None):
@@ -637,10 +637,10 @@ class ModeManagerREST(object):
             if paramData is None:
                 raise ValueError("parameter data absent for feedback mode 'enable' or 'paramChange' request")
             ParamDataJSON = json.dumps(paramData)
-            ret_val = requests.put(url, data=ParamDataJSON)
+            ret_val = requests.post(url, data=ParamDataJSON)
             return ret_val.status_code
         elif req == "disable":
-            ret_val = requests.put(url)
+            ret_val = requests.post(url)
             return ret_val.status_code
 
 

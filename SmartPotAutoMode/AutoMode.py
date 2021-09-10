@@ -138,6 +138,7 @@ class JobSchedulerThread(threading.Thread):
             ScheduleDict.pop(plantID)
 
     def run(self):
+        print("Thread loop initialized...")
         while not self.threadStop:
             if self.toSet:
                 self.setDailySchedule()
@@ -155,8 +156,8 @@ class JobSchedulerThread(threading.Thread):
         jobType = parameters['type']
         duration = parameters['duration']
         timeStr = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cmdDict = {"mode": jobType, "time": timeStr, "duration": duration}
-        cmdJSON = json.loads(cmdDict)
+        cmdDict = {"action": "on", "time": timeStr, "duration": duration}
+        cmdJSON = json.dumps(cmdDict)
         # get topic
         topic = Hcatalog.getPlantCmdTopic(deviceID, jobType)
         self.MQTT.publishCommand(topic, cmdJSON)
@@ -266,7 +267,6 @@ class AutomaticModeREST(object):
                         print('scheduler MQTT client started')
                         print('Starting scheduler thread...')
                         self.schedulerThread.start()
-                        print('Scheduler thread online')
                         self.active = True
                     if not self.initialized:
                         for ID in Hcatalog.getPlantIDs():  # create a status entry for each plant ID in home catalog
