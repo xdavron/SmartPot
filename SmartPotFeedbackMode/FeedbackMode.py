@@ -3,8 +3,6 @@
 # WATERING
 # the program tries to keep a moisture level(user given) more or less constant (water only when below it),
 # optimal moisture level will be adjusted according to temperature and humidity data
-# moisture threshold can be fixed for the whole day(FIXED MODE) or it can vary with respect to time (DAILTY SCHEDULE MODE)
-
 
 # LIGHTING
 # the program tries to have the plant receive the optimal amount of light time, if by nighttime that amount hasn't
@@ -343,7 +341,8 @@ class FeedbackModeREST(object):
             if cmd == "thresholds":
                 if deviceID in deviceParameters:
                     devID_params = deviceParameters[deviceID].copy()
-                    return json.dumps(devID_params.pop("last_hum_update"))
+                    devID_params.pop("last_hum_update", None)
+                    return json.dumps(devID_params)
                 else:
                     cherrypy.HTTPError(404, "thresholds params for this ID not found")
             else:
