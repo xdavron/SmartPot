@@ -159,6 +159,12 @@ class ModeManagerREST(object):
 
     feedback_mode_thresholds = {}  # dict of struct "plantID": {"type":"const" or "sched", "data":tr_dict}
 
+    def return_value_check(self, service, ret_val):
+        if ret_val == 404:
+            raise cherrypy.HTTPError(404, f"{service} mode could not be reched or url was invalid")
+        if ret_val == 500:
+            raise cherrypy.HTTPError(500, f"{service} mode had an internal error")
+
     # tr_dict={"light_time":n, "hum_tresh":t}, n is the minimum number, if type "sched" we have a dict:
     # {t1:tr_dict1, t2:tr_dict2} where t1,t2,.. are timestamps
     # of minutes the plant must be irradiated, t the minimum soil humidity treshold to keep
@@ -303,8 +309,8 @@ class ModeManagerREST(object):
                         if "manual" not in self.deviceMode[devID]:
                             if not self.modeConflict("manual", devID):
                                 self.deviceMode[devID].append("manual")
-                                self.manualModeRequest(devID, "enable")
-                                # add error if it can't reach manual mode
+                                ret_code = self.manualModeRequest(devID, "enable")
+                                self.return_value_check("manual", ret_code)  # raises HTTPerror if code is 404 or 500
                                 return
                             raise cherrypy.HTTPError(500, "cannot enable due to mode conflict")
                         else:
@@ -315,8 +321,9 @@ class ModeManagerREST(object):
                                 ID = dev[0]
                                 if "manual" in self.deviceMode[ID]:
                                     self.deviceMode[devID].remove("manual")
-                                    self.manualModeRequest(devID, "disable")
-                                    # add error if it can't reach manual mode
+                                    ret_code = self.manualModeRequest(devID, "disable")
+                                    self.return_value_check("manual",
+                                                            ret_code)  # raises HTTPerror if code is 404 or 500
                         elif "manual" in self.deviceMode[devID]:
                             self.deviceMode[devID].remove("manual")
                             self.manualModeRequest(devID, "disable")
@@ -340,8 +347,10 @@ class ModeManagerREST(object):
                                     daily_jobs = scheduleDB.getDailyJobs(devID)
                                     if daily_jobs is not None:  # CHECK IF THERE IS A STORED SCHEDULE
                                         self.deviceMode[devID].append("auto")
-                                        self.autoModeRequest(devID, "enable", daily_jobs)
-                                        # add error if it can't reach auto mode
+                                        ret_code = self.autoModeRequest(devID, "enable", daily_jobs)
+                                        self.return_value_check("auto",
+                                                                ret_code)  # raises HTTPerror if code is 404 or 500
+
                                     else:
                                         raise cherrypy.HTTPError(500, "no scheduled stored for specified id")
                                 elif params["newSchedule"] == "True":
@@ -354,8 +363,9 @@ class ModeManagerREST(object):
                                         daily_jobs = scheduleDB.getDailyJobs(devID)
                                         if daily_jobs is not None:  # CHECK IF SCHEDULE IS STORED CORRECTLY
                                             self.deviceMode[devID].append("auto")
-                                            self.autoModeRequest(devID, "enable", daily_jobs)
-                                            # add error if it can't reach auto mode
+                                            ret_code = self.autoModeRequest(devID, "enable", daily_jobs)
+                                            self.return_value_check("auto",
+                                                                    ret_code)  # raises HTTPerror if code is 404 or 500
                                             scheduleDB.updateScheduleFile()  # store new schedule in file
                                         else:
                                             raise cherrypy.HTTPError(500, "error in storing the schedule")
@@ -492,10 +502,10 @@ class ModeManagerREST(object):
                                     feedback_mode_msg["illum_thresh"] = self.default_illum_thresh
                                 if "hum_thresh" not in feedback_mode_msg:
                                     feedback_mode_msg["hum_thresh"] = -1
-                                # TO-DO: STORE FB MODE DATA IN MODE MANAGER?
                                 # SEND ENABLE REQUEST TO FEEDBACK MODE ACTOR
-                                self.feedbackModeRequest(devID, req="enable",
+                                ret_code = self.feedbackModeRequest(devID, req="enable",
                                                          paramData=feedback_mode_msg)
+                                self.return_value_check("feedback", ret_code)
                             else:
                                 raise cherrypy.HTTPError(500, "cannot enable due to mode conflict")
                         else:
@@ -507,15 +517,17 @@ class ModeManagerREST(object):
                                 ID = dev[0]
                                 if "feedback" in self.deviceMode[ID]:
                                     try:
-                                        # TO-DO: send request to feedback mode actor
+                                        ret_code = self.feedbackModeRequest(devID, "disable")
                                         self.deviceMode[devID].remove("feedback")
+                                        self.return_value_check("feedback", ret_code)
                                     except:
                                         raise cherrypy.HTTPError(500,
                                                                  "error in communicating with Feedback Mode Actor")
                         elif "feedback" in self.deviceMode[devID]:
                             try:
                                 self.deviceMode[devID].remove("feedback")
-                                self.feedbackModeRequest(devID, "disable")
+                                ret_code = self.feedbackModeRequest(devID, "disable")
+                                self.return_value_check("feedback", ret_code)
                             except:
                                 raise cherrypy.HTTPError(500,
                                                          "error in communicating with Feedback Mode Actor")
@@ -596,7 +608,8 @@ class ModeManagerREST(object):
         # port = Hcatalog.urls["manualMode"]["port"]
         # url = "http://" + ip + ':' + str(port) + '/' + devID + '/' + req
         url = "http://" + ip + '/' + devID + '/' + req
-        requests.put(url)
+        retval = requests.put(url)
+        return retval.status_code
 
     def autoModeRequest(self, devID, req, dailySched=None):
         global Hcatalog
@@ -607,9 +620,11 @@ class ModeManagerREST(object):
             if dailySched is None:
                 raise ValueError("daily schedule for auto mode enable request is empty")
             dailySchedJSON = json.dumps(dailySched)
-            requests.put(url, data=dailySchedJSON)
+            ret_val = requests.put(url, data=dailySchedJSON)
+            return ret_val.status_code
         elif req == "disable":
-            requests.put(url)
+            ret_val = requests.put(url)
+            return ret_val.status_code
 
     def feedbackModeRequest(self, devID, req, paramData=None):
         global Hcatalog
@@ -622,9 +637,11 @@ class ModeManagerREST(object):
             if paramData is None:
                 raise ValueError("parameter data absent for feedback mode 'enable' or 'paramChange' request")
             ParamDataJSON = json.dumps(paramData)
-            requests.put(url, data=ParamDataJSON)
+            ret_val = requests.put(url, data=ParamDataJSON)
+            return ret_val.status_code
         elif req == "disable":
-            requests.put(url)
+            ret_val = requests.put(url)
+            return ret_val.status_code
 
 
 if __name__ == '__main__':
