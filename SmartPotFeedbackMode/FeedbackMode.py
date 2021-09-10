@@ -311,9 +311,11 @@ class FeedbackModeREST(object):
                     return str(deviceStatus[deviceID])
                 elif deviceID == "all":
                     return json.dumps(deviceStatus)
-            if cmd == "thresh":
+            if cmd == "thresholds":
                 if deviceID in deviceParameters:
                     return deviceParameters[deviceID]
+                if deviceID == "all":
+                    return json.dumps(deviceParameters)
                 else:
                     cherrypy.HTTPError(404, "thresholds params for this ID not found")
             else:
