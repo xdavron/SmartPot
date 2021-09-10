@@ -313,9 +313,7 @@ class FeedbackModeREST(object):
                     return json.dumps(deviceStatus)
             if cmd == "thresholds":
                 if deviceID in deviceParameters:
-                    return deviceParameters[deviceID]
-                if deviceID == "all":
-                    return json.dumps(deviceParameters)
+                    return json.dumps(deviceParameters[deviceID].copy().remove("last_hum_update"))
                 else:
                     cherrypy.HTTPError(404, "thresholds params for this ID not found")
             else:
