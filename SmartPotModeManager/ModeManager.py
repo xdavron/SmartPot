@@ -506,6 +506,7 @@ class ModeManagerREST(object):
                                 ret_code = self.feedbackModeRequest(devID, req="enable",
                                                          paramData=feedback_mode_msg)
                                 self.return_value_check("feedback", ret_code)
+                                self.deviceMode[devID].append("feedback")
                             else:
                                 raise cherrypy.HTTPError(500, "cannot enable due to mode conflict")
                         else:
