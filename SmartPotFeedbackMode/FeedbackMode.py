@@ -38,12 +38,17 @@ deviceStatus = {}  # dictionary containing the feedback mode status for each pla
 # TODO: allow user to set the night time or retrieve it from internet
 nightTime_h = 18
 nightTime_m = 0
+default_illum_thresh_g = 70
+default_hum_thresh_g = 500
+default_light_time_g = 8*6000
 
 
 class FeedbackModeMQTTClient(MQTTClient):
     global Hcatalog
+    global default_illum_thresh_g
+
     lightSensorInterval = 30
-    default_illum_thresh = 70  # default illumination threhsold
+    default_illum_thresh = default_illum_thresh_g  # default illumination threhsold
 
     # subscribe to the topics of soil and light sensors of deviceID
     def subToSensorData(self, deviceID):
@@ -276,6 +281,31 @@ class FeedbackModeREST(object):
         else:
             self.MQTT.myUnsubscribe([waterAck, lightAck])
 
+    def requestActiveIDs(self):
+        global Hcatalog
+        global deviceStatus
+        global deviceParameters
+        global default_illum_thresh_g
+        global default_hum_thresh_g
+        global default_light_time_g
+        modeActive = False
+        suffix = '/all/status'
+        ip = Hcatalog.urls["ModeManager"]["ip"]
+        url = 'http://'+ip+suffix
+        response = requests.get(url)
+        modeDict = json.loads(response.content)
+        for el in modeDict.items():
+            id = el[0]
+            modeList = el[1]
+            if "feedback" in modeList:
+                deviceStatus[id] = "on"
+                deviceParameters = {"light_time": default_light_time_g, "hum_thresh": default_hum_thresh_g,
+                                    "illum_thresh": default_illum_thresh_g}
+                modeActive = True
+        # request device modes from ModeManager and update self.deviceStatus
+        return modeActive  # true if at least 1 id has auto mode enabled
+
+
     @cherrypy.tools.accept(media='application/json')
     def GET(self, *uri):
         global deviceParameters
@@ -359,11 +389,10 @@ class FeedbackModeREST(object):
                         print("Initializing sensor listener...")
                         for ID in Hcatalog.getPlantIDs():  # create a status entry for each plant ID in home catalog
                             deviceStatus[ID] = "off"  # initialize all as inactive
-                            print(ID)
                             deviceLightCounter[ID] = 0  # set all counters to 0 (TO-DO: store light counters in modeManager)
                             print("Subscribing to sensor data of device: ", ID)
                             self.MQTT.subToSensorData(ID)  # sub to device data and start monitoring illumination
-                        # TO-DO:  request list of active modes on init from modemanager (like in auto mode)
+                        self.requestActiveIDs()
                         print("Initializing thread for regulating Light Supplement...")
                         self.scheduleThread = LightSupplement(self.MQTT)
                         self.scheduleThread.start()
