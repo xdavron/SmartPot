@@ -102,7 +102,7 @@ class FeedbackModeMQTTClient(MQTTClient):
         if deviceParameters[devID]["hum_thresh"] != -1:  # humidity control is active
             try:
                 # sensorData format: {“value”:..,"time":”2020-08-10 15:17:28”}
-                sensorData_dict = json.loads(sensorData)
+                sensorData_dict = sensorData
                 new_t = datetime.strptime(sensorData_dict["time"], "%Y-%m-%d %H:%M:%S")
                 if "last_hum_update" not in deviceParameters[devID]:
                     deviceParameters[devID]["last_hum_update"] = new_t
@@ -133,7 +133,7 @@ class FeedbackModeMQTTClient(MQTTClient):
         global deviceParameters
         try:
             # sensorData format: {“value”:..,"time":”2020-08-10 15:17:28”}
-            sensorData_dict = json.loads(sensorData)
+            sensorData_dict = sensorData
             new_t = datetime.strptime(sensorData_dict["time"], "%Y-%m-%d %H:%M:%S")
             # we check all received data, and assume a constant sensor tx interval so that each sensor reading add
             # a fixed amount of light time
@@ -141,18 +141,18 @@ class FeedbackModeMQTTClient(MQTTClient):
                 if sensorData["value"] < deviceParameters[devID]["illum_thresh"]:  # compare sensor data with devID threshold
                     if self.DEBUG:
                         print(f"DEVICE: {devID}, light sensor reading: {sensorData['value']}, "
-                              f"below threshold: {deviceParameters['illum_thresh']}")
-                    return True
+                              f"below threshold: {deviceParameters[devID]['illum_thresh']}")
+                    return False
                 if self.DEBUG:
                     print(f"DEVICE: {devID}, light sensor reading: {sensorData['value']}, "
-                          f"above threshold: {deviceParameters['illum_thresh']}")
+                          f"above threshold: {deviceParameters[devID]['illum_thresh']}")
             else:
                 if sensorData["value"] < self.default_illum_thresh:  # compare sensor data with default threshold
-                    return True
+                    return False
                 if self.DEBUG:
                     print(f"DEVICE: {devID}, light sensor reading: {sensorData['value']}, "
                           f"above default threshold: {self.default_illum_thresh}")
-            return False
+            return True
         except:
             print(f"WARNING: Could not parse sensor data of device {devID}, received payload str: ", sensorData)
             return False
@@ -382,8 +382,7 @@ class FeedbackModeREST(object):
             cmd = str(uri[1])
             if deviceID == "system":
                 if cmd == "changeNightTime":
-                    jsonPayload = cherrypy.request.body.read().decode('utf8')
-                    new_nightTime = json.loads(jsonPayload)
+                    new_nightTime = cherrypy.request.body.read().decode('utf8')
                     try:
                         h_str, m_str = new_nightTime.split(":")
                     except:
