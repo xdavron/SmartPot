@@ -10,10 +10,17 @@ class resourceCatalog(object):
     exposed = True
 
     def send_update_request(self):
-        updateURL_list = [self.jsonDic.urls["manualMode"]["ip"] + "/update",
-                          self.jsonDic.urls["automaticMode"]["ip"] + "/update",
-                          self.jsonDic.urls["ModeManager"]["ip"] + "/update",
-                          self.jsonDic.urls["feedbackMode"]["ip"] + "/update"]
+        try:
+            file = open("initialData.json", "r")
+            jsonString = file.read()
+            file.close()
+        except:
+            raise cherrypy.HTTPError(500, "* resourceCatalog: ERROR IN READING INITIAL DATA *")
+        jsonDic = json.loads(jsonString)
+        updateURL_list = ["https://"+jsonDic["urls"]["manualMode"]["ip"] + "/update",
+                          "https://"+jsonDic["urls"]["automaticMode"]["ip"] + "/update",
+                          "https://"+jsonDic["urls"]["ModeManager"]["ip"] + "/update",
+                          "https://"+jsonDic["urls"]["feedbackMode"]["ip"] + "/update"]
         for url in updateURL_list:
             retval = requests.get(url)
             print(retval.status_code, retval.content)
@@ -29,7 +36,6 @@ class resourceCatalog(object):
         except:
             raise cherrypy.HTTPError(500, "* resourceCatalog: ERROR IN READING INITIAL DATA *")
         self.jsonDic = json.loads(self.jsonString)
-        # print(self.jsonDic)
 
         # item will contain the request information
         try:
@@ -54,7 +60,6 @@ class resourceCatalog(object):
         except:
             raise cherrypy.HTTPError(500, "* resourceCatalog: ERROR IN READING INITIAL DATA *")
         self.jsonDic = json.loads(self.jsonString)
-        # print(self.jsonDic['topics'])
 
         if len(uri) != 0:
             cmd = uri[0]
@@ -126,46 +131,12 @@ class resourceCatalog(object):
 
 if __name__ == '__main__':
     # reading the config file to set the url and the port on which expose the web service
-    # file = open("configFile.json", "r")
-    # jsonString = file.read()
-    # file.close()
-    # data = json.loads(jsonString)
-    # ip = data["resourceCatalog"]["ip"]
-    # port = data["resourceCatalog"]["port"]
-    # # client = mqtt.Client()
     # # configuration for the web service
-    #
     def CORS():
         cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
         cherrypy.response.headers["Access-Control-Allow-Credentials"] = "true"
         cherrypy.response.headers["Access-Control-Allow-Methods"] = "GET,HEAD,OPTIONS,POST,PUT"
         cherrypy.response.headers["Access-Control-Allow-Headers"] = "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers"
-
-
-    # def CORS():
-    #     if cherrypy.request.method == 'OPTIONS':
-    #         cherrypy.response.headers['Access-Control-Allow-Headers'] = 'content-type'
-    #         cherrypy.response.headers['Access-Congitrol-Allow-Origin'] = '*'
-    #         return True
-    #     else:
-    #         cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
-
-    # cherrypy.tools.CORS = cherrypy._cptools.HandlerTool(CORS)
-    #
-    #
-    # conf = {'/':
-    #     {
-    #         'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-    #         'tools.sessions.on': True,
-    #         'tools.CORS.on': True,
-    #         'tools.response_headers.on': True
-    #     }
-    # }
-    # cherrypy.tree.mount(resourceCatalog(), '/', conf)
-    # cherrypy.tools.CORS = cherrypy.Tool('before_handler', CORS)
-    # cherrypy.config.update({"server.socket_host": '0.0.0.0', "server.socket_port": int(os.environ.get('PORT', 8000))})
-    # cherrypy.engine.start()
-    # cherrypy.engine.block()
 
     config = {
         'global': {

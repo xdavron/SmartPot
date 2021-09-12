@@ -3,8 +3,6 @@
 import cherrypy
 import time
 import json
-import cherrypy_cors
-import paho.mqtt.client as PahoMQTT
 from datetime import datetime
 from SmartPotAutoMode.MQTTPlantCare import MQTTClient
 from SmartPotAutoMode.homeCatalogRequests import catalog
@@ -64,7 +62,7 @@ class JobSchedulerThread(threading.Thread):
         global ScheduleDict
         global Hcatalog
         ip = Hcatalog.urls["ModeManager"]["ip"]
-        port = Hcatalog.urls["ModeManager"]["port"]
+        # port = Hcatalog.urls["ModeManager"]["port"]
         suffix = "/all/auto/schedule/daily/?onlyActives=True"
         url = "http://"+ip+suffix
         response = requests.get(url)
@@ -124,7 +122,7 @@ class JobSchedulerThread(threading.Thread):
     def removeScheduledJobs(self, plantID):
         # REMOVE ALL JOBS WITH TAG plantID
         if self.DEBUG:
-            print("clearing jobs with ID:", plantID)
+            print("clearing jobs with ID: ", plantID)
         schedule.clear(plantID)
 
     def resetSchedule(self):
@@ -138,7 +136,7 @@ class JobSchedulerThread(threading.Thread):
             ScheduleDict.pop(plantID)
 
     def run(self):
-        print("Thread loop initialized...")
+        print("Thread init")
         while not self.threadStop:
             if self.toSet:
                 self.setDailySchedule()
@@ -160,7 +158,11 @@ class JobSchedulerThread(threading.Thread):
         cmdJSON = json.dumps(cmdDict)
         # get topic
         topic = Hcatalog.getPlantCmdTopic(deviceID, jobType)
+        if self.DEBUG:
+            print(topic)
         self.MQTT.publishCommand(topic, cmdJSON)
+        if self.DEBUG:
+            print(cmdJSON, "msg published  ")
 
     def stop(self):
         self.threadStop = True
@@ -267,20 +269,21 @@ class AutomaticModeREST(object):
                         print('scheduler MQTT client started')
                         print('Starting scheduler thread...')
                         self.schedulerThread.start()
+                        print('Scheduler thread online')
                         self.active = True
                     if not self.initialized:
                         for ID in Hcatalog.getPlantIDs():  # create a status entry for each plant ID in home catalog
                             self.deviceStatus[ID] = "off"
-                        try:
+                        # try:
                             # self.requestActiveIDs() request modes of all device IDs from ModeManager,
                             # if at least one has auto mode active return True
                             if self.requestActiveIDs():
                                 self.schedulerThread.toSet = True
                                 # thread will now request list of daily jobs and schedule them
                             self.initialized = True
-
-                        except:
-                            print("couldn't retrieve active ID list from ModeManager")
+                            print(self.initialized)
+                        # except:
+                        #     print("couldn't retrieve active ID list from ModeManager")
                     outputDict["ID status list initialized"] = self.initialized
                     outputDict["Scheduler Thread active"] = self.active
                     return json.dumps(outputDict)
@@ -345,9 +348,10 @@ class AutomaticModeREST(object):
         modeActive = False
         suffix = '/all/status'
         ip = Hcatalog.urls["ModeManager"]["ip"]
-        port = Hcatalog.urls["ModeManager"]["port"]
         url = 'http://'+ip+suffix
         response = requests.get(url)
+        print(url)
+        print(response.content)
         modeDict = json.loads(response.content)
         for el in modeDict.items():
             id = el[0]
@@ -364,14 +368,6 @@ if __name__ == '__main__':
     def CORS():
         cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
     # retrieve topic data from the home catalog
-    # file = open("configFile.json", "r")
-    # jsonString = file.read()
-    # file.close()
-    # data = json.loads(jsonString)
-    # catalog_ip = data["resourceCatalog"]["ip"]
-    # catalog_port = data["resourceCatalog"]["port"]
-    # myIP = data["automaticMode"]["ip"]
-    # myPort = data["automaticMode"]["port"]
     catalog_ip = "smart-pot-catalog.herokuapp.com"
     catalog_port = ""
     myIP = '0.0.0.0'

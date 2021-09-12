@@ -115,10 +115,8 @@ class ManualModeREST(object):
     def GET(self, *uri):
         global Hcatalog
 
-        if len(uri) >= 1:
-            deviceID = uri[0]
-
-            if deviceID == "update":
+        if len(uri) != 0:
+            if uri[0] == "update":
                 Hcatalog.requestAll()
                 keys = self.deviceStatus.copy()
                 for plantID in keys.keys():
@@ -127,7 +125,8 @@ class ManualModeREST(object):
                 for ID in Hcatalog.getPlantIDs():  # create a status entry for each new plant ID in home catalog
                     if ID not in self.deviceStatus.keys():
                         self.deviceStatus[ID] = "off"
-
+        if len(uri) >= 2:
+            deviceID = uri[0]
             cmd = uri[1]
             if cmd == "status":  # status of manual mode for each plant ('on' or 'off)
                 if deviceID == "all":
@@ -236,13 +235,9 @@ class ManualModeREST(object):
         modeActive = False
         suffix = '/all/status'
         ip = Hcatalog.urls["ModeManager"]["ip"]
-        # print(ip)
-        # port = Hcatalog.urls["ModeManager"]["port"]
-        # url = 'http://' + ip + ':' + port + suffix
         url = 'http://' + ip + suffix
         try:
             response = requests.get(url)
-            # print(response.content)
         except:
             print("request to ModeManager failed")
             return False
@@ -251,7 +246,6 @@ class ManualModeREST(object):
             for el in modeDict.items():
                 ID = el[0]
                 modeList = el[1]
-                # print(modeList)
                 if "manual" in modeList:
                     if not self.deviceStatus[ID] == "on":  # check if mode is not already enabled
                         self.deviceStatus[ID] = "on"
@@ -260,7 +254,6 @@ class ManualModeREST(object):
                     if not self.deviceStatus[ID] == "off":  # check if mode is not already enabled
                         self.deviceStatus[ID] = "off"
             # request device modes from ModeManager and update self.deviceStatus
-            # print(self.deviceStatus)
         except:
             return False
         return True
@@ -268,29 +261,15 @@ class ManualModeREST(object):
 
 if __name__ == '__main__':
     # retrieve topic data from the home catalog
-    # file = open("configFile.json", "r")
-    # jsonString = file.read()
-    # file.close()
-    # data = json.loads(jsonString)
-    # catalog_ip = data["resourceCatalog"]["ip"]
-    # catalog_port = data["resourceCatalog"]["port"]
-    # myIP = data["manualMode"]["ip"]
-    # myPort = data["manualMode"]["port"]
-
     catalog_ip = "smart-pot-catalog.herokuapp.com"
     catalog_port = ""
 
-    # myIP = "127.0.0.1"
-    # myPort = "8080"
     myIP = "0.0.0.0"
     myPort = os.getenv('PORT')
 
     # instantiate catalog class and send requests to the home catalog actor
     Hcatalog = catalog(catalog_ip, catalog_port)  # global variable
     Hcatalog.requestAll()  # request all topics and urls
-    # print("rx topics: ", Hcatalog.topics)
-    # print("rx urls ", Hcatalog.urls)
-    # print("rx broker info :", Hcatalog.broker)
 
     def CORS():
         cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"

@@ -15,9 +15,7 @@ import cherrypy
 import time
 import json
 import os
-import paho.mqtt.client as PahoMQTT
 from datetime import datetime
-import SmartPotFeedbackMode.MQTTPlantCare
 import threading
 import schedule
 from SmartPotFeedbackMode.MQTTPlantCare import MQTTClient
@@ -33,8 +31,8 @@ deviceLightCounter = {}  # global variable counting minutes of illumination for 
 deviceStatus = {}  # dictionary containing the feedback mode status for each plant ID
 # nighttime, time after which the led can be turned on to supplement lighting time
 # TODO: allow user to set the night time or retrieve it from internet
-nightTime_h = 18
-nightTime_m = 0
+nightTime_h = 12
+nightTime_m = 20
 default_illum_thresh_g = 70
 default_hum_thresh_g = 500
 default_light_time_g = 8*6000
@@ -162,7 +160,7 @@ class FeedbackModeMQTTClient(MQTTClient):
         global deviceLightCounter
         deviceLightCounter[devID] += self.lightSensorInterval  # this is doable if sensor transmit at intervals
         if self.DEBUG:
-            print(f"light counter of {deviceID} increased of {self.lightSensorInterval}")
+            print(f"light time counter of {deviceID} increased, new value: {deviceLightCounter[devID]}")
 
     def giveLightCmd(self, devID, duration):
         global Hcatalog
@@ -224,6 +222,8 @@ class LightSupplement(threading.Thread):
                         diff = deviceLightCounter[ID] - deviceParameters[ID]["light_time"]
                         # "light_time": k, "hum_thresh": n, "illum_thresh": m, "last_hum_update": t
                         if diff > 0:
+                            if self.DEBUG:
+                                print(f"{devID} has a lighting deficit of {diff} seconds, sending command to supplement light..")
                             self.MQTT.giveLightCmd(ID, diff)
         else:
             if devID is None:
@@ -244,7 +244,18 @@ class LightSupplement(threading.Thread):
         global nightTime_h
         global nightTime_m
         # at the end of the day(00:00) it will clear all jobs and reschedule
-        check_time = str(nightTime_h)+':'+str(nightTime_m)
+        if nightTime_h < 10:
+            hour = '0' + str(nightTime_h)
+        else:
+            hour = str(nightTime_h)
+
+        if nightTime_m < 10:
+            minute = '0' + str(nightTime_m)
+        else:
+            minute = str(nightTime_m)
+
+        check_time = hour+':'+minute
+        print(check_time)
         schedule.every().day.at(check_time+':30').do(self.lightSupplementCheck)
         schedule.every().day.at('23:59:59').do(self.reset)
         self.toSet = False
@@ -267,7 +278,7 @@ class LightSupplement(threading.Thread):
                 self.setSchedule()
             schedule.run_pending()
             time.sleep(1)
-        print("Thread loop ended...")
+        print("Thread loop ended... ")
 
     def stop(self):
         self.threadStop = True
@@ -389,6 +400,9 @@ class FeedbackModeREST(object):
                         raise cherrypy.HTTPError(500, "invalid payload format")
                     nightTime_h = int(h_str)
                     nightTime_m = int(m_str)
+                    if self.active:
+                        schedule.clear()
+                        self.scheduleThread.setSchedule()
 
                 if cmd == 'stop':
                     # turns off feedback mode and the REST API service
@@ -476,10 +490,6 @@ if __name__ == '__main__':
     def CORS():
         cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
     # retrieve topic data from the home catalog
-    # file = open("configFile.json", "r")
-    # jsonString = file.read()
-    # file.close()
-    # data = json.loads(jsonString)
     catalog_ip = "smart-pot-catalog.herokuapp.com"
     catalog_port = ""
     myIP = '0.0.0.0'
@@ -487,7 +497,6 @@ if __name__ == '__main__':
     # instantiate catalog class and send requests to the home catalog actor
     Hcatalog = catalog(catalog_ip, catalog_port)  # global variable
     Hcatalog.requestAll()  # request all topics and urls
-    # print("Loaded topic data:", Hcatalog.topics)
     conf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),

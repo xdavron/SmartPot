@@ -1,19 +1,136 @@
 {
-	"resourceCatalog": {
-		"ip": "smart-pot-catalog.herokuapp.com",
-		"port": "80"
-	},
-
-	"manualMode": {
-		"ip": "smart-pot-manual-mode.herokuapp.com",
-		"port": "8084"
-	},
-	"automaticMode": {
-		"ip": "127.0.0.3",
-		"port": "8082"
-	},
-	"ModeManager": {
-		"ip": "smart-pot-mode-manager.herokuapp.com",
-		"port": "8083"
-	}
+  "broker": {
+    "ip": "test.mosquitto.org",
+    "port": "1883"
+  },
+  "topics": {
+    "plant1": {
+      "name": "Basil",
+      "topic": {
+        "lightControlTopic": "dataCenter/plant1/lightControlTopic",
+        "waterControlTopic": "dataCenter/plant1/waterControlTopic",
+        "waterControlOrder": "dataCenter/plant1/waterControlOrder",
+        "lightControlOrder": "dataCenter/plant1/lightControlOrder",
+        "dhtTopic": "dataCenter/plant1/tempHum",
+        "soilTopic": "dataCenter/plant1/soil",
+        "lightTopic": "dataCenter/plant1/light",
+        "waterTopic": "dataCenter/plant1/water"
+      },
+      "thresholds": {
+        "minHum": "28",
+        "minTemp": "89",
+        "maxHum": "38",
+        "maxTemp": "100"
+      }
+    },
+    "plant2": {
+      "name": "Philodendron",
+      "topic": {
+        "lightControlTopic": "dataCenter/plant2/lightControlTopic",
+        "waterControlTopic": "dataCenter/plant2/waterControlTopic",
+        "waterControlOrder": "dataCenter/plant2/waterControlOrder",
+        "lightControlOrder": "dataCenter/plant2/lightControlOrder",
+        "dhtTopic": "dataCenter/plant2/tempHum",
+        "soilTopic": "dataCenter/plant2/soil",
+        "lightTopic": "dataCenter/plant2/light",
+        "waterTopic": "dataCenter/plant2/water"
+      },
+      "thresholds": {
+        "minHum": "1.0",
+        "minTemp": "1.0",
+        "maxHum": "10.0",
+        "maxTemp": "10.0"
+      }
+    },
+    "plant3": {
+      "name": "Piece Lily",
+      "topic": {
+        "lightControlTopic": "dataCenter/plant3/lightControlTopic",
+        "waterControlTopic": "dataCenter/plant3/waterControlTopic",
+        "waterControlOrder": "dataCenter/plant3/waterControlOrder",
+        "lightControlOrder": "dataCenter/plant3/lightControlOrder",
+        "dhtTopic": "dataCenter/plant3/tempHum",
+        "soilTopic": "dataCenter/plant3/soil",
+        "lightTopic": "dataCenter/plant3/light",
+        "waterTopic": "dataCenter/plant3/water"
+      },
+      "thresholds": {
+        "minHum": "1.0",
+        "minTemp": "1.0",
+        "maxHum": "10.0",
+        "maxTemp": "10.0"
+      }
+    },
+    "plant4": {
+      "name": "African Violet",
+      "topic": {
+        "lightControlTopic": "dataCenter/plant4/lightControlTopic",
+        "waterControlTopic": "dataCenter/plant4/waterControlTopic",
+        "waterControlOrder": "dataCenter/plant4/waterControlOrder",
+        "lightControlOrder": "dataCenter/plant4/lightControlOrder",
+        "dhtTopic": "dataCenter/plant4/tempHum",
+        "soilTopic": "dataCenter/plant4/soil",
+        "lightTopic": "dataCenter/plant4/light",
+        "waterTopic": "dataCenter/plant4/water"
+      },
+      "thresholds": {
+        "minHum": "1.0",
+        "minTemp": "1.0",
+        "maxHum": "10.0",
+        "maxTemp": "10.0"
+      }
+    },
+    "plant5": {
+      "name": "Jade",
+      "topic": {
+        "lightControlTopic": "dataCenter/plant5/lightControlTopic",
+        "waterControlTopic": "dataCenter/plant5/waterControlTopic",
+        "waterControlOrder": "dataCenter/plant5/waterControlOrder",
+        "lightControlOrder": "dataCenter/plant5/lightControlOrder",
+        "dhtTopic": "dataCenter/plant5/tempHum",
+        "soilTopic": "dataCenter/plant5/soil",
+        "lightTopic": "dataCenter/plant5/light",
+        "waterTopic": "dataCenter/plant5/water"
+      },
+      "thresholds": {
+        "minHum": "1.0",
+        "minTemp": "1.0",
+        "maxHum": "10.0",
+        "maxTemp": "10.0"
+      }
+    },
+    "plant6": {
+      "name": "Aloe",
+      "topic": {
+        "lightControlTopic": "dataCenter/plant6/lightControlTopic",
+        "waterControlTopic": "dataCenter/plant6/waterControlTopic",
+        "waterControlOrder": "dataCenter/plant6/waterControlOrder",
+        "lightControlOrder": "dataCenter/plant6/lightControlOrder",
+        "dhtTopic": "dataCenter/plant6/tempHum",
+        "soilTopic": "dataCenter/plant6/soil",
+        "lightTopic": "dataCenter/plant6/light",
+        "waterTopic": "dataCenter/plant6/water"
+      },
+      "thresholds": {
+        "minHum": "1.0",
+        "minTemp": "1.0",
+        "maxHum": "10.0",
+        "maxTemp": "10.0"
+      }
+    }
+  },
+  "urls": {
+    "manualMode": {
+      "ip": "smart-pot-manual-mode.herokuapp.com"
+    },
+    "automaticMode": {
+      "ip": "smart-pot-auto-mode.herokuapp.com"
+    },
+    "ModeManager": {
+      "ip": "smart-pot-mode-manager.herokuapp.com"
+    },
+    "feedbackMode": {
+      "ip": "smart-pot-feedback-mode.herokuapp.com"
+    }
+  }
 }

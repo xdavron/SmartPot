@@ -193,20 +193,6 @@ class ModeManagerREST(object):
             if mode == "status":
                 Hcatalog.requestAll()
 
-                # for ID in Hcatalog.getPlantIDs():  # create a status entry for each plant ID in home catalog
-                #     self.deviceMode[ID] = []
-                # # read initial modes in the file
-                # try:
-                #     with open(self.initialModeFileName, "r") as fp:
-                #         initialModes = json.load(fp)
-                #         for storedData in list(initialModes.items()):
-                #             id = storedData[0]
-                #             modes = storedData[1]
-                #             self.deviceMode[id].extend(modes)
-                #         self.initialized = True
-                # except:
-                #     raise cherrypy.HTTPError(500, "unable to open initial modes file")
-
                 if devID == "all":
                     return json.dumps(self.deviceMode)
                 else:
@@ -435,21 +421,6 @@ class ModeManagerREST(object):
                                         raise cherrypy.HTTPError(500, "error in communicating with Automatic Mode")
                             except:
                                 raise cherrypy.HTTPError(500, "message not a valid json format")
-                        # # if present
-                        # try:
-                        #     jsonPayload = cherrypy.request.body.read().decode('utf8')
-                        #     if not scheduleDB.addSchedule(devID, jsonPayload):
-                        #         raise cherrypy.HTTPError(500, "bad message body format")
-                        #     if "auto" in self.deviceMode[devID]:  # update daily schedule if auto mode is active
-                        #         try:
-                        #             dailyJob = scheduleDB.getDailyJobs(devID)
-                        #             self.autoModeRequest(devID, "changeSchedule", dailyJob)
-                        #         except:
-                        #             raise cherrypy.HTTPError(500, "error in communicating with Automatic Mode")
-                        # except:
-                        #     raise cherrypy.HTTPError(500, "message not a valid json format")
-                        # # if present
-                        # requests to enable/disable feedbackmode, set thresholds, add threshold schedules
                 if mode == "feedback":
                     cmd = uri[2]
                     if cmd == "enable":
@@ -561,7 +532,7 @@ class ModeManagerREST(object):
                                 raise cherrypy.HTTPError(500,
                                                          "humidity threshold must be a value between 0 and 100")
                         if "light_time" in msg_body_dict:
-                            if 0 <= int(msg_body_dict["light_time"]) <= 1440:
+                            if 0 <= int(msg_body_dict["light_time"]) <= 21600:
                                 feedback_mode_msg["light_time"] = msg_body_dict["light_time"]
                             if "illum_thresh" in msg_body_dict:
                                 if 0 <= int(msg_body_dict["illum_thresh"]) <= 1023:
@@ -609,8 +580,6 @@ class ModeManagerREST(object):
     def manualModeRequest(self, devID, req):
         global Hcatalog
         ip = Hcatalog.urls["manualMode"]["ip"]
-        # port = Hcatalog.urls["manualMode"]["port"]
-        # url = "http://" + ip + ':' + str(port) + '/' + devID + '/' + req
         url = "http://" + ip + '/' + devID + '/' + req
         retval = requests.post(url)
         return retval.status_code
@@ -618,7 +587,6 @@ class ModeManagerREST(object):
     def autoModeRequest(self, devID, req, dailySched=None):
         global Hcatalog
         ip = Hcatalog.urls["automaticMode"]["ip"]
-        # port = Hcatalog.urls["automaticMode"]["port"]
         url = "http://" + ip + '/' + devID + '/' + req
         if req == "enable" or req == "changeSchedule":
             if dailySched is None:
@@ -634,8 +602,6 @@ class ModeManagerREST(object):
         global Hcatalog
         # possible cmds: enable, disable, paramChange
         ip = Hcatalog.urls["feedbackMode"]["ip"]
-        # port = Hcatalog.urls["feedbackMode"]["port"]
-        # url = "http://" + ip + ':' + str(port) + '/' + devID + '/' + req
         url = "http://" + ip + '/' + devID + '/' + req
         if req == "enable" or req == "paramChange":
             if paramData is None:
@@ -652,7 +618,6 @@ if __name__ == '__main__':
     def CORS():
         cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
 
-
     # retrieve schedule data from file
     try:
         scheduleDB = scheduleStorage(scheduleFileName)
@@ -660,23 +625,8 @@ if __name__ == '__main__':
         print("warning: could not open schedule file")
 
     # retrieve topic data from the home catalog
-    # file = open("configFile.json", "r")
-    # jsonString = file.read()
-    # file.close()
-    # data = json.loads(jsonString)
-
-    # for requesting catalog url
-    # r = requests.get("https://smart-pot-catalog.herokuapp.com/urls")
-    # if r.status_code != 200:  # expected status code
-    #     raise ConnectionError("unexpected status code from home catalog")
-    # rawData = r.content
-    # print(rawData)
-
     catalog_ip = "smart-pot-catalog.herokuapp.com"
     catalog_port = ""  # data["resourceCatalog"]["port"]
-
-    # myIP = "127.0.0.1" #data["ModeManager"]["ip"]
-    # myPort = "8080" #data["ModeManager"]["port"]
 
     myIP = "0.0.0.0"
     myPort = os.getenv('PORT')
@@ -697,10 +647,6 @@ if __name__ == '__main__':
             'tools.response_headers.on': True
         }
     }
-    # START THE REST API SERVICE
-    # cherrypy.tree.mount(ModeManagerREST(), '/', conf)
     cherrypy.tools.CORS = cherrypy.Tool('before_handler', CORS)
     cherrypy.quickstart(ModeManagerREST(), '/', config=conf)
-    # cherrypy.config.update({"server.socket_host": str(myIP), "server.socket_port": int(myPort)})
-    # cherrypy.engine.start()
-    # cherrypy.engine.block()
+
