@@ -1,0 +1,98 @@
+<main>
+    <div class="container" style="margin-top: 10rem;">
+        <!--Projects section v.2-->
+        <section class="section text-center">
+
+        <div class="row d-flex justify-content-center" *ngIf="plants2">
+
+            <!--Grid column-->
+            <ng-template ngFor let-plant [ngForOf]="plants2">
+
+              <div class="col-lg-4 mb-5">
+
+                <!--Featured image-->
+                <div class="view overlay rounded z-depth-2  waves-light" mdbWavesEffect>
+                    <img [src]="plant.imageUrl" class="img-fluid" alt="Sample project test">
+                    <a>
+                        <div class="mask rgba-white-slight"></div>
+                    </a>
+                </div>
+
+                <!--Excerpt-->
+                <mdb-card-body>
+                    <h4 class="font-weight-bold mt-2 mb-3">{{plant.name}}</h4>
+                    <a routerLink="./{{plant.id}}" mdbBtn color="success" size="md" class="waves-light" style="border-radius: 10rem; display: block; width: 120px; margin: auto;" mdbWavesEffect>View more</a>
+                </mdb-card-body>
+
+              </div>
+
+            </ng-template>
+            <!--Grid column-->
+
+            <!--Grid column-->
+            <div class="col-lg-4 mb-5">
+
+              <!--Featured image-->
+              <div class="view overlay rounded z-depth-2  waves-light" mdbWavesEffect style="width: fit-content; margin: auto;">
+                  <img src="../../assets/images/add.png" class="img-fluid" alt="Sample project image" style="width: 150px;">
+                  <a>
+                      <div class="mask rgba-white-slight"></div>
+                  </a>
+              </div>
+
+              <!--Excerpt-->
+              <mdb-card-body>
+                  <a (click)="frame.show()" mdbBtn data-toggle="modal" data-target="#basicExample" color="primary" size="md" class="waves-light mt-5 mb-3" style="border-radius: 10rem;" mdbWavesEffect>Add plant</a>
+              </mdb-card-body>
+
+            </div>
+            <!--Grid column-->
+
+        </div>
+        <!--Grid row-->
+
+        </section>
+        <!--/Projects section v.2-->
+
+        <a id="modalClose" (click)="frame.hide()"></a>
+
+        <div mdbModal #frame="mdbModal" class="modal fade top" id="frameModalTop" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel" aria-hidden="true" style="top: 7rem;">
+          <div class="modal-dialog cascading-modal modal-avatar modal-sm" role="document">
+            <!--Content-->
+            <div class="modal-content">
+
+              <!--Header-->
+              <div class="modal-header">
+                <img src="https://www.ugaoo.com/knowledge-center/wp-content/uploads/2017/01/shutterstock_451488049.jpg" alt="avatar"
+                    class="rounded-circle img-responsive">
+              </div>
+              <!--Body-->
+              <div class="modal-body">
+
+                <h5 class="mt-1 mb-2 text-center">New Plant</h5>
+
+                <form (ngSubmit)="addPlant(form.value)" [formGroup]="form" class="md-form ml-0 mr-0 mb-3">
+                  <input type="text" type="text" id="formName" class="form-control form-control-md ml-0"
+                        mdbInput formControlName="name" autocomplete="off">
+                  <label for="formName" class="ml-0">Enter plant name</label>
+
+                  <mdb-error *ngIf="form.get('name')?.hasError('pattern')">
+                    Name has invalid character(s).
+                  </mdb-error>
+
+                  <div class="text-center mt-4">
+                    <button type="submit" mdbBtn color="success" size="md" class="mt-1 waves-light"
+                           mdbWavesEffect [disabled]="!form.valid">Add</button>
+                  </div>
+                </form>
+              </div>
+
+            </div>
+            <!--/.Content-->
+          </div>
+        </div>
+    </div>
+</main>
+
+

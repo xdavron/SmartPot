@@ -1,0 +1,134 @@
+<div class="card">
+    <div class="row m-0 card-header" >
+
+      <h3 class="text-center font-weight-normal" style="margin-left: 35%;">Automatic Control</h3>
+
+      <div class="custom-control custom-switch pt-1" style="margin-left: auto;">
+          <input type="checkbox" class="custom-control-input" id="customSwitch2"[checked]="activeAuto" (change)="changeStatus()" [disabled]="lie">
+          <label id="lieId" class="custom-control-label" for="customSwitch2">On</label>
+      </div>
+
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-4" style="border-right: 1px solid;">
+                <h5>&nbsp;Choose days:</h5>
+
+                <div class="btn-group-vertical btn-group-toggle">
+
+                    <label class="mb-2" mdbBtn color="secondary" [(ngModel)]="checkModel.monday" size="md" mdbCheckbox mdbWavesEffect>
+                        Monday
+                    </label>
+
+                    <label class="mb-2" mdbBtn color="secondary" [(ngModel)]="checkModel.tuesday" size="md" mdbCheckbox mdbWavesEffect>
+                        Tuesday
+                    </label>
+
+                    <label class="mb-2" mdbBtn color="secondary" [(ngModel)]="checkModel.wednesday" size="md" mdbCheckbox mdbWavesEffect>
+                        Wednesday
+                    </label>
+
+                    <label class="mb-2" mdbBtn color="secondary" [(ngModel)]="checkModel.thursday" size="md" mdbCheckbox mdbWavesEffect>
+                        Thursday
+                    </label>
+
+                    <label class="mb-2" mdbBtn color="secondary" [(ngModel)]="checkModel.friday" size="md" mdbCheckbox mdbWavesEffect>
+                        Friday
+                    </label>
+
+                    <label class="mb-2" mdbBtn color="secondary" [(ngModel)]="checkModel.saturday" size="md" mdbCheckbox mdbWavesEffect>
+                        Saturday
+                    </label>
+
+                    <label mdbBtn color="secondary" [(ngModel)]="checkModel.sunday" size="md" mdbCheckbox mdbWavesEffect>
+                        Sunday
+                    </label>
+
+                </div>
+
+            </div>
+            <div class="col-6 pl-5">
+              <div>
+                <h4>Water:</h4>
+
+                <div class="md-form">
+                    <input
+                        type="time"
+                        id="inputTime"
+                        class="form-control"
+                        [(ngModel)]="timeW"
+                        mdbInput
+                    />
+                    <label for="inputTime">Choose your time</label>
+                    <label style="position: absolute; right: -50px; left: auto; color: #4285f4;" *ngIf="!secondTime">
+                      <a (click)="addTimer()"><mdb-icon fas icon="plus-circle"></mdb-icon></a>
+                    </label>
+                    <label style="position: absolute; right: -50px; left: auto; color: #4285f4;" *ngIf="secondTime">
+                      <a (click)="removeSecondTimer()"><mdb-icon fas icon="minus-circle"></mdb-icon></a>
+                    </label>
+                </div>
+
+                <div class="md-form" *ngIf="secondTime">
+                  <input
+                      type="time"
+                      id="inputTime"
+                      class="form-control"
+                      [(ngModel)]="time2"
+                      mdbInput
+                  />
+                </div>
+
+                <label>Duration:</label>
+                <input [(ngModel)]="dur" class="form-control form-control-sm" id="inputDuration" type="number" min="-1" placeholder="-1 ms" autocomplete="off">
+
+              </div>
+<hr>
+              <div>
+                <h4>Light:</h4>
+
+                <div class="md-form">
+                    <input
+                        type="time"
+                        id="inputTime2"
+                        class="form-control"
+                        [(ngModel)]="timeL"
+                        mdbInput
+                    />
+                    <label for="inputTime2">Choose your time</label>
+                    <label style="position: absolute; right: -50px; left: auto; color: #4285f4;" *ngIf="!thirdTime">
+                      <a (click)="addTimer2()"><mdb-icon fas icon="plus-circle"></mdb-icon></a>
+                    </label>
+                    <label style="position: absolute; right: -50px; left: auto; color: #4285f4;" *ngIf="thirdTime">
+                      <a (click)="removeSecondTimer2()"><mdb-icon fas icon="minus-circle"></mdb-icon></a>
+                    </label>
+                </div>
+
+                <div class="md-form" *ngIf="thirdTime">
+                  <input
+                      type="time"
+                      id="inputTime2"
+                      class="form-control"
+                      [(ngModel)]="time3"
+                      mdbInput
+                  />
+                </div>
+
+                <label>Duration:</label>
+                <input [(ngModel)]="dur2" class="form-control form-control-sm" id="inputDuration2" type="number" min="-1" placeholder="-1 ms" autocomplete="off">
+
+              </div>
+
+                <br>
+                <button (click)="setSchedule()" type="button" class="btn btn-sm btn-block btn-outline-primary"
+                        style="width: 50%; margin: 1.4rem auto 0 auto;"
+                        [disabled]="(!checkModel2.water && !checkModel2.light) ||
+                                    (!checkModel.monday && !checkModel.tuesday &&
+                                    !checkModel.wednesday && !checkModel.thursday
+                                    && !checkModel.friday && !checkModel.saturday &&
+                                    !checkModel.sunday)"
+
+                                    >Submit</button>
+            </div>
+        </div>
+    </div>
+</div>

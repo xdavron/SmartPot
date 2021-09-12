@@ -1,0 +1,14 @@
+<mdb-navbar SideClass="navbar navbar-expand-lg navbar-dark pink ie-nav fixed-top" [containerInside]="true">
+  <mdb-navbar-brand>
+      <a class="navbar-brand" routerLink="/" style="font-size: 2rem;"><strong>Smart Pot</strong></a>
+  </mdb-navbar-brand>
+  <links>
+      <ul class="navbar-nav nav-flex-icons ml-auto">
+          <li class="h3 nav-item waves-light white-text mb-0" mdbWavesEffect>
+            {{time | date:'mediumTime'}}
+          </li>
+      </ul>
+  </links>
+</mdb-navbar>
+
+<router-outlet></router-outlet>

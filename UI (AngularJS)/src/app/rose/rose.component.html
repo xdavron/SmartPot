@@ -1,0 +1,115 @@
+<div class="container myContainer" style="margin-top: 7rem;">
+    <h2 style="text-align: center;" class="my-5"><b>Mode Manager</b></h2>
+    <div class="row">
+        <div class="col-12 col-lg-5 col-xl-4">
+
+            <!--Card-->
+            <mdb-card *ngIf="plantId && plantName">
+
+                <!--Card image-->
+                <div class="view overlay waves-light" mdbWavesEffect>
+                    <mdb-card-img [src]="plant?.imageUrl"></mdb-card-img>
+                    <a (click)="goToLink('./')">
+                        <div class="mask rgba-white-slight"></div>
+                    </a>
+                </div>
+                <!--/.Card image-->
+
+                <!--Card content-->
+                <mdb-card-body>
+
+                    <!--Title-->
+                    <mdb-card-title class="row">
+                        <h4 class="ml-4" style="margin-top: 0.5rem; margin-bottom: 0">{{plantName}}</h4>
+                        <!-- <h4 class="ml-4">Mode Manager</h4> -->
+                        <a id="deleteButton" (click)="frame.show()" data-toggle="modal" data-target="#basicExample" mdbBtn class="my-0 mr-4" style="margin-left: auto" color="danger" size="sm" mdbWavesEffect>
+                          <mdb-icon far icon="trash-alt"></mdb-icon>
+                        </a>
+                    </mdb-card-title>
+
+                    <hr>
+
+                    <!-- Radio -->
+                    <div class="btn-group mt-2 mb-3">
+                        <button id="manuId" (click)="goToLink('./manual')" mdbBtn class="px ml-2 mr-1" color="primary" size="sm" mdbWavesEffect>
+                            Manual
+                        </button>
+                        <button id="autoId" (click)="goToLink('./automatic')" mdbBtn class="px mx-1" color="primary" size="sm" mdbWavesEffect>
+                            Automatic
+                        </button>
+                        <button id="feedbackId" (click)="goToLink('./feedback')" mdbBtn class="px ml-1 mr-2" color="primary" size="sm" mdbWavesEffect>
+                            Feedback
+                        </button>
+                    </div>
+
+                    <!-- <h5 class="mt-4 mb-2 font-weight-normal text-center">Thresholds</h5>
+
+                    <ul>
+                        <li class="mb-2"><h6 class="my-0 font-weight-normal">Temperature: &nbsp;&nbsp;{{ plant.thresholds.minTemp }}&#8451;&nbsp; — &nbsp;{{ plant.thresholds.maxTemp }}&#8451;</h6></li>
+                        <li class="mb-2"><h6 class="my-0 font-weight-normal">Humidity: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ plant.thresholds.minHum }} g/m<sup>3</sup> — {{ plant.thresholds.maxHum }} g/m<sup>3</sup></h6></li>
+                    </ul> -->
+
+                </mdb-card-body>
+                <!--/.Card content-->
+            </mdb-card>
+            <!--/.Card-->
+
+        </div>
+
+        <div class="col-xl-1" id="bekorJoy"></div>
+
+        <div class="col -12 col-lg-7">
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+
+    <div mdbModal #frame="mdbModal" class="modal fade" id="frameModalTop" tabindex="-1" role="dialog"
+      aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-sm modal-notify modal-danger cascading-modal" role="document">
+        <!--Content-->
+        <div class="modal-content text-center">
+          <!--Header-->
+          <div class="modal-header d-flex justify-content-center">
+            <p class="heading m-auto">Are you sure?</p>
+          </div>
+
+          <!--Body-->
+          <div class="modal-body">
+            <h6>You are about to delete {{ plantName }}</h6>
+            <mdb-icon fas icon="times" size="4x" class="animated rotateIn"></mdb-icon>
+          </div>
+
+          <!--Footer-->
+          <div class="modal-footer justify-content-center">
+            <a (click)="deletePlant()" mdbBtn color="danger" class="waves-effect"
+              mdbWavesEffect>Yes</a>
+            <a id="closeDelete" type="button" mdbBtn color="danger" class="waves-effect" mdbWavesEffect data-dismiss="modal" (click)="frame.hide()">No</a>
+          </div>
+        </div>
+        <!--/.Content-->
+      </div>
+    </div>
+
+    <button id="errButton" type="button" class="d-none" (click)="basicModal.show()">Launch demo modal</button>
+
+    <div mdbModal #basicModal="mdbModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myBasicModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close pull-right" aria-label="Close" (click)="basicModal.hide()">
+              <span aria-hidden="true">×</span>
+            </button>
+            <h4 class="modal-title w-100" id="myModalLabel">Smart Pot</h4>
+          </div>
+          <div class="modal-body">
+            <p>You cannot switch Manual or Automatic mode on unless you switch Feedback mode off. Or vice versa.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" mdbBtn color="secondary" class="waves-light" aria-label="Close" (click)="basicModal.hide()" mdbWavesEffect>Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+

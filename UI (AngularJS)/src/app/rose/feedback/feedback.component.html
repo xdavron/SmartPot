@@ -1,0 +1,42 @@
+<div class="card">
+  <div class="row m-0 card-header" >
+
+    <h3 class="text-center font-weight-normal" style="margin-left: 35%;">Feedback Control</h3>
+
+    <div class="custom-control custom-switch pt-1" style="margin-left: auto;">
+        <input type="checkbox" class="custom-control-input" id="customSwitch3"[checked]="activeFeed" (change)="changeStatus()">
+        <label id="lieId" class="custom-control-label" for="customSwitch3">On</label>
+    </div>
+
+  </div>
+  <div class="card-body">
+      <div class="row">
+          <div class="col-12 mt-2">
+            <div class="mb-4 mx-auto" style="width: 50%;">
+              <h5 for="light">Light time: {{ light }}</h5>
+              <input class="form-control form-control-sm" type="number" placeholder="Duration -1 ms" [(ngModel)]="light" id="light" autocomplete="off">
+            </div>
+
+            <div class="mb-4 mx-auto" style="width: 50%;">
+              <h5 for="illum">Illumination threshold: {{ illum }}</h5>
+              <input class="slider" style="width: 100%;" type="range" min="-1" max="1023" id="illum" [(ngModel)]="illum">
+            </div>
+
+            <div class="mx-auto" style="width: 50%;">
+              <h5 for="humidity">Humidity threshold: {{ humidity }}</h5>
+              <input class="slider" style="width: 100%;" type="range" min="-1" max="1023" id="humidity" [(ngModel)]="humidity">
+            </div>
+
+            <br>
+
+            <button (click)="setSchedule()" type="button" class="btn btn-sm btn-block btn-outline-primary"
+                    style="width: 25%; margin: 1.4rem auto 0 auto;"
+                                >Submit</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+
+
