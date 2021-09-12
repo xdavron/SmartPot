@@ -278,6 +278,7 @@ class AutomaticModeREST(object):
                                 self.schedulerThread.toSet = True
                                 # thread will now request list of daily jobs and schedule them
                             self.initialized = True
+
                         except:
                             print("couldn't retrieve active ID list from ModeManager")
                     outputDict["ID status list initialized"] = self.initialized

@@ -1,0 +1,7 @@
+{
+	"reSourceCatalog": {
+		"url": "https://smart-pot-catalog.herokuapp.com",
+		"plantIdUrl":"/topics/plant1",
+		"plantId":"plant1"
+	}
+}
